@@ -2,11 +2,16 @@ module Yesod.Bootstrap where
 
 import Prelude hiding (div)
 import Yesod.Core.Widget
+import Yesod.Core.Handler
 import Data.Text (Text)
 import Data.List
 import Data.Monoid
 import Text.Blaze.Html (toHtml)
 import qualified Data.Text as Text
+import Control.Monad.Writer.Class
+import Control.Monad.Writer.Strict
+import qualified Data.List as List
+import Data.Function (on)
 
 data Context = Success | Info | Warning | Danger | Default | Primary | Link | Error
 data Size = ExtraSmall | Small | Medium | Large
@@ -24,6 +29,30 @@ label_ attrs inner = [whamlet|<label *{mkStrAttrs attrs}>^{inner}|]
 
 input_ :: [(Text,Text)] -> WidgetT site IO ()
 input_ attrs = [whamlet|<input *{mkStrAttrs attrs}>|]
+
+h1_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+h1_ attrs inner = [whamlet|<h1 *{mkStrAttrs attrs}>^{inner}|]
+
+h2_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+h2_ attrs inner = [whamlet|<h2 *{mkStrAttrs attrs}>^{inner}|]
+
+h3_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+h3_ attrs inner = [whamlet|<h3 *{mkStrAttrs attrs}>^{inner}|]
+
+h4_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+h4_ attrs inner = [whamlet|<h4 *{mkStrAttrs attrs}>^{inner}|]
+
+h5_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+h5_ attrs inner = [whamlet|<h5 *{mkStrAttrs attrs}>^{inner}|]
+
+h6_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+h6_ attrs inner = [whamlet|<h6 *{mkStrAttrs attrs}>^{inner}|]
+
+p_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+p_ attrs inner = [whamlet|<p *{mkStrAttrs attrs}>^{inner}|]
+
+a_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+a_ attrs inner = [whamlet|<a *{mkStrAttrs attrs}>^{inner}|]
 
 ul_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 ul_ attrs inner = [whamlet|<ul *{mkStrAttrs attrs}>^{inner}|]
@@ -95,3 +124,28 @@ contextName c = case c of
 tw :: Text -> WidgetT site IO ()
 tw = toWidget . toHtml 
 
+-- Togglable tabs
+data ToggleTab site = ToggleSection Text (WidgetT site IO ()) | ToggleDropdown Text [(Text,WidgetT site IO ())]
+
+togglableTabs :: [ToggleTab site] -> WidgetT site IO ()
+togglableTabs tabs = do
+  (nav,bodies) <- execWriterT $ forM_ (zip [1..] tabs) $ \(i,tab) -> case tab of
+    ToggleSection title body -> do
+      theId <- lift newIdent
+      let tabAAttrs = [("role","tab"),("href","#" <> theId),("data-toggle","tab")]
+          tabLiAttrs = (if isFirst then addClass "active" else id) [("role","presentation")]
+          paneClasses = (if isFirst then addClass "active" else id)
+            [("class","tab-pane"),("role","tabpanel"),("id",theId)]
+          isFirst = (i == (1 :: Int))
+      tellFst $ li_ tabLiAttrs $ a_ tabAAttrs $ tw title
+      tellSnd $ div_ paneClasses body
+    _ -> error "figure this out"
+  div_ [] $ do
+    ul_ [("class","nav nav-tabs"),("role","tablist")] nav
+    div_ [("class","tab-content")] bodies
+  where tellFst a = tell (a,mempty)
+        tellSnd b = tell (mempty,b)
+        addClass :: Text -> [(Text,Text)] -> [(Text,Text)]
+        addClass klass attrs = case List.lookup "class" attrs of
+          Nothing -> ("class",klass) : attrs
+          Just c -> ("class",c <> " " <> klass) : List.deleteBy ((==) `on` fst) ("class","") attrs
