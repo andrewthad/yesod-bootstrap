@@ -1,10 +1,13 @@
 module Yesod.Bootstrap where
 
 import Prelude hiding (div)
+import Yesod.Core
 import Yesod.Core.Widget
+import Yesod.Core.Handler
 import Data.Text (Text)
 import Data.List
 import Data.Monoid
+import Control.Monad
 import Text.Blaze.Html (toHtml)
 import qualified Data.Text as Text
 
@@ -12,6 +15,14 @@ data Context = Success | Info | Warning | Danger | Default | Primary | Link | Er
 data Size = ExtraSmall | Small | Medium | Large
 data ColSize = ColSize Size Int
 data Flow = Block | Inline
+data Panel site = Panel 
+  { panelTitle :: (WidgetT site IO ()) 
+  , panelBody :: (WidgetT site IO ())
+  , panelContext :: Context
+  }
+
+basicPanel :: Text -> WidgetT site IO () -> Panel site
+basicPanel t c = Panel (tw t) c Default
 
 div_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 div_ attrs inner = [whamlet|<div *{mkStrAttrs attrs}>^{inner}|]
@@ -31,6 +42,18 @@ ul_ attrs inner = [whamlet|<ul *{mkStrAttrs attrs}>^{inner}|]
 li_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 li_ attrs inner = [whamlet|<li *{mkStrAttrs attrs}>^{inner}|]
 
+h1_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+h1_ attrs inner = [whamlet|<h1 *{mkStrAttrs attrs}>^{inner}|]
+
+a_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+a_ attrs inner = [whamlet|<a *{mkStrAttrs attrs}>^{inner}|]
+
+h4_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+h4_ attrs inner = [whamlet|<h4 *{mkStrAttrs attrs}>^{inner}|]
+
+p_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+p_ attrs inner = [whamlet|<p *{mkStrAttrs attrs}>^{inner}|]
+
 button_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 button_ attrs inner = [whamlet|<button *{mkStrAttrs attrs}>^{inner}|]
 
@@ -39,6 +62,9 @@ mkStrAttrs = map $ \(a,b) -> (Text.unpack a, Text.unpack b)
 
 row :: WidgetT site IO () -> WidgetT site IO ()
 row = div_ [("class","row")]
+
+container :: WidgetT site IO () -> WidgetT site IO ()
+container = div_ [("class","container")]
 
 col :: [ColSize] -> WidgetT site IO () -> WidgetT site IO ()
 col cs = div_ [("class", Text.intercalate " " (map mkAttr cs))]
@@ -73,6 +99,27 @@ controlLabel = label_ [("class","control-label")]
 
 helpBlock :: WidgetT site IO () -> WidgetT site IO ()
 helpBlock = div_ [("class","help-block")]
+
+anchorButton :: Context -> Route site -> WidgetT site IO () -> WidgetT site IO ()
+anchorButton ctx route inner = do
+  render <- getUrlRender
+  a_ [("href",render route),("class","btn btn-" <> contextName ctx)] inner
+
+panelAccordion :: [Panel site] -> WidgetT site IO ()
+panelAccordion tcs = do 
+  groupId <- newIdent 
+  div_ [("class","panel-group"),("id",groupId),("role","tablist")] $ do
+    forM_ (zip [1..] tcs) $ \(i,Panel title content ctx) -> do
+      headingId <- newIdent
+      panelId <- newIdent
+      div_ [("class","panel panel-" <> contextName ctx)] $ do
+        div_ [("class", "panel-heading"),("role","tab"),("id",headingId)] $ do
+          h4_ [("class","panel-title")] $ do
+            a_ [("href","#" <> panelId),("role","button"),("data-toggle","collapse"),("data-parent","#" <> groupId)] $ do
+              title
+        div_ [("id",panelId),("class","panel-collapse collapse" <> (if i == 1 then " in" else "")),("role","tabpanel"),("aria-labelledby",headingId)] $ do
+          div_ [("class","panel-body")] $ do
+            content
 
 colSizeShortName :: Size -> Text
 colSizeShortName s = case s of

@@ -109,9 +109,16 @@ simpleCheck typ parser display config = formToGForm $ do
           FormFailure _ -> permissionDenied "Bootstrap checkbox field somehow failed" 
           FormMissing   -> return $ isJust $ join (_fcValue config)
 
--- select :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
---   => HandlerT site IO (OptionList a) -> FieldConfig m Text -> GForm (WidgetT site IO ()) m Text
--- select opts config = let Field parse view enctype = selectField opts in do
+select :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
+  => HandlerT site IO (OptionList a) -> FieldConfig m Text -> GForm (WidgetT site IO ()) m Text
+select opts config = ghelper UrlEncoded (fullValidate parse) $ \name vals res -> do
+  theId <- newIdent 
+  let r = case res of
+            FormSuccess a -> Right a
+            _ -> Left ""
+  view theId name [] r True
+  where Field parse view enctype = selectField opts
+  
 
 simpleCheckJs :: Text -> Text -> WidgetT site IO ()
 simpleCheckJs checkId inputId = toWidget [julius|
