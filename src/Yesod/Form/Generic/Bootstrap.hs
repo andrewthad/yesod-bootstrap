@@ -77,9 +77,6 @@ instance Monad m => Monoid (FieldConfig m a) where
 instance Monad m => IsString (FieldConfig m a) where
   fromString s = mempty {_fcLabel = Just (toWidget (toHtml s))}
 
-label :: Monad m => Text -> FieldConfig m a
-label t = mempty { _fcLabel = Just (tw t) }
-
 render :: Monad m => GForm (WidgetT site IO ()) m a -> Html -> MForm m (FormResult a, WidgetT site IO ())
 render g h = gFormToForm (monoidToGForm (toWidget h) *> g)
 
@@ -302,10 +299,10 @@ boolAttrs :: [(Text,Bool)] -> [(Text,Text)]
 boolAttrs = map (\t -> (fst t, fst t)) . filter snd
 
 labelAndInput :: WidgetT site IO () -> Text -> Text -> Bool -> Text -> WidgetT site IO ()
-labelAndInput label name typ readonly val = do
+labelAndInput labelWidget name typ readonly val = do
   let baseAttrs = [("class","form-control"),("type",typ),("name",name),("value",val)]
       addReadonly = if readonly then (("readonly","readonly"):) else id
-  controlLabel label
+  controlLabel labelWidget
   input_ (addReadonly $ baseAttrs)
 
 fieldParseToGParse :: (MonadHandler m)

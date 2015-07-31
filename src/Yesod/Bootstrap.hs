@@ -127,6 +127,12 @@ anchorButton ctx route inner = do
   render <- getUrlRender
   a_ [("href",render route),("class","btn btn-" <> contextName ctx)] inner
 
+label :: Context -> WidgetT site IO () -> WidgetT site IO ()
+label ctx = span_ [("class","label label-" <> contextName ctx)]
+
+badge :: WidgetT site IO () -> WidgetT site IO ()
+badge = span_ [("class","badge")]
+
 panelAccordion :: [Panel site] -> WidgetT site IO ()
 panelAccordion tcs = do 
   groupId <- newIdent 
@@ -166,9 +172,10 @@ tw = toWidget . toHtml
 
 -- Togglable tabs
 data ToggleTab site = ToggleSection Text (WidgetT site IO ()) | ToggleDropdown Text [(Text,WidgetT site IO ())]
+data ToggleStyle = ToggleStyleTab | ToggleStylePill
 
-togglableTabs :: [ToggleTab site] -> WidgetT site IO ()
-togglableTabs tabs = do
+togglableTabs :: ToggleStyle -> [ToggleTab site] -> WidgetT site IO ()
+togglableTabs s tabs = do
   (nav,bodies) <- execWriterT $ forM_ (zip [1..] tabs) $ \(i,tab) -> case tab of
     ToggleSection title body -> do
       theId <- lift newIdent
@@ -181,7 +188,10 @@ togglableTabs tabs = do
       tellSnd $ div_ paneClasses body
     _ -> error "figure this out"
   div_ [] $ do
-    ul_ [("class","nav nav-tabs"),("role","tablist")] nav
+    let styleText = case s of
+          ToggleStyleTab -> "nav-tabs"
+          ToggleStylePill -> "nav-pills"
+    ul_ [("class","nav " <> styleText),("role","tablist")] nav
     div_ [("class","tab-content")] bodies
   where tellFst a = tell (a,mempty)
         tellSnd b = tell (mempty,b)
