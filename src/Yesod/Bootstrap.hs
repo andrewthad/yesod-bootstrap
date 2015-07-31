@@ -40,6 +40,9 @@ label_ attrs inner = [whamlet|<label *{mkStrAttrs attrs}>^{inner}|]
 input_ :: [(Text,Text)] -> WidgetT site IO ()
 input_ attrs = [whamlet|<input *{mkStrAttrs attrs}>|]
 
+img_ :: [(Text,Text)] -> WidgetT site IO ()
+img_ attrs = [whamlet|<img *{mkStrAttrs attrs}>|]
+
 h1_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 h1_ attrs inner = [whamlet|<h1 *{mkStrAttrs attrs}>^{inner}|]
 
@@ -61,26 +64,14 @@ h6_ attrs inner = [whamlet|<h6 *{mkStrAttrs attrs}>^{inner}|]
 p_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 p_ attrs inner = [whamlet|<p *{mkStrAttrs attrs}>^{inner}|]
 
-a_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
-a_ attrs inner = [whamlet|<a *{mkStrAttrs attrs}>^{inner}|]
-
 ul_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 ul_ attrs inner = [whamlet|<ul *{mkStrAttrs attrs}>^{inner}|]
 
 li_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 li_ attrs inner = [whamlet|<li *{mkStrAttrs attrs}>^{inner}|]
 
-h1_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
-h1_ attrs inner = [whamlet|<h1 *{mkStrAttrs attrs}>^{inner}|]
-
 a_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 a_ attrs inner = [whamlet|<a *{mkStrAttrs attrs}>^{inner}|]
-
-h4_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
-h4_ attrs inner = [whamlet|<h4 *{mkStrAttrs attrs}>^{inner}|]
-
-p_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
-p_ attrs inner = [whamlet|<p *{mkStrAttrs attrs}>^{inner}|]
 
 button_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 button_ attrs inner = [whamlet|<button *{mkStrAttrs attrs}>^{inner}|]

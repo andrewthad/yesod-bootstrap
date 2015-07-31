@@ -20,6 +20,11 @@ import Lens.Family
 import Lens.Family2.TH
 import Text.Julius (rawJS)
 import Debug.Trace
+import Data.Either.Combinators
+import Data.String
+import Control.Monad.Random
+import Database.Persist (PersistField)
+import Database.Persist.Sql (PersistFieldSql)
 
 data FieldConfig m a = FieldConfig
   { _fcLabel :: Maybe (WidgetT (HandlerSite m) IO ())
@@ -42,6 +47,9 @@ instance Monad m => Monoid (FieldConfig m a) where
       case e of 
         Left err -> return $ Left err
         Right a' -> return $ Right a'
+
+instance Monad m => IsString (FieldConfig m a) where
+  fromString s = mempty {_fcLabel = Just (toWidget (toHtml s))}
 
 label :: Monad m => Text -> FieldConfig m a
 label t = mempty { _fcLabel = Just (tw t) }
@@ -109,16 +117,89 @@ simpleCheck typ parser display config = formToGForm $ do
           FormFailure _ -> permissionDenied "Bootstrap checkbox field somehow failed" 
           FormMissing   -> return $ isJust $ join (_fcValue config)
 
-select :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
-  => HandlerT site IO (OptionList a) -> FieldConfig m Text -> GForm (WidgetT site IO ()) m Text
-select opts config = ghelper UrlEncoded (fullValidate parse) $ \name vals res -> do
-  theId <- newIdent 
-  let r = case res of
-            FormSuccess a -> Right a
-            _ -> Left ""
-  view theId name [] r True
+select :: (RenderMessage site FormMessage, Eq a)
+  => HandlerT site IO (OptionList a) 
+  -> FieldConfig (HandlerT site IO) a 
+  -> GForm (WidgetT site IO ()) (HandlerT site IO) a
+select opts c = ghelper UrlEncoded 
+  (fieldParseToGParse parse) $ \name vals res -> do
+    theId <- newIdent 
+    let r = case res of
+              FormSuccess a -> Right a
+              FormMissing -> case _fcValue c of
+                Nothing -> Left ""
+                Just a -> Right a
+              FormFailure _ -> Left ""
+    formGroup $ do
+      whenMaybe (_fcLabel c) controlLabel
+      view theId name [("class","form-control")] r True
   where Field parse view enctype = selectField opts
+
+newtype UploadFilename = UploadFilename Text
+  deriving (PersistField, PersistFieldSql, Show, Read)
+
+class YesodUpload site where
+  uploadDirectory :: site -> String
+  uploadRoute :: UploadFilename -> Route site
+
+file :: (YesodUpload site, MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
+  => FieldConfig m UploadFilename -> GForm (WidgetT site IO ()) m UploadFilename
+file c = ghelper Multipart
+  (fullValidate (fileParseHelper (_fcValue c)) (_fcValidate c)) $ \name _vals res -> do
+    formGroup $ do
+      whenMaybe (_fcLabel c) controlLabel
+      input_ [("type","file"),("name",name)] 
+      case res of
+        FormFailure errs -> helpBlock $ ul_ [("class","list-unstyled")] $ mapM_ (li_ [] . tw) errs
+        _ -> mempty
+      whenMaybe (_fcValue c) $ \filename -> do
+        render <- getUrlRender
+        img_ [("width","140"),("src",render $ uploadRoute filename),("class","img-thumbnail")]
+    
   
+fileParseHelper :: (YesodUpload site, MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
+  => (Maybe UploadFilename) -- ^ If this is Just, then the field is not required.
+  -> [Text] -> [FileInfo] -> m (FormResult UploadFilename)
+fileParseHelper mdef _ [] = return $ case mdef of
+  Nothing -> FormMissing
+  Just a -> FormSuccess a
+fileParseHelper _ _ (x:_) = do
+  app <- getYesod
+  name <- liftIO $ moveIt (uploadDirectory app) x
+  return (FormSuccess name)
+
+moveIt :: String -> FileInfo -> IO UploadFilename
+moveIt dir fi = do
+  baseFilename <- randomUpperConsonantText 24
+  let ext = snd $ Text.breakOn "." (fileName fi)
+      fullFileName = baseFilename <> ext
+  fileMove fi $ Text.unpack $ mempty 
+    <> Text.pack dir 
+    <> "/" 
+    <> fullFileName
+  return $ UploadFilename fullFileName
+
+randomUpperConsonantText :: Int -> IO Text
+randomUpperConsonantText n = id
+  $ fmap Text.pack 
+  $ evalRandIO 
+  $ replicateM n
+  $ uniform allConsonants
+  where allConsonants = filter (not . isVowel) ['A'..'Z']
+
+isVowel :: Char -> Bool
+isVowel c = case c of
+  'a' -> True
+  'e' -> True
+  'i' -> True
+  'o' -> True
+  'u' -> True
+  'A' -> True
+  'E' -> True
+  'I' -> True
+  'O' -> True
+  'U' -> True
+  _   -> False
 
 simpleCheckJs :: Text -> Text -> WidgetT site IO ()
 simpleCheckJs checkId inputId = toWidget [julius|
@@ -151,6 +232,19 @@ labelAndInput label name typ readonly val = do
   controlLabel label
   input_ (addReadonly $ baseAttrs)
 
+fieldParseToGParse :: (MonadHandler m)
+  => ([Text] -> [FileInfo] -> m (Either (SomeMessage (HandlerSite m)) (Maybe a)))
+  -> [Text] -> [FileInfo] -> m (FormResult a)
+fieldParseToGParse parse ts fs = do
+  e <- parse ts fs 
+  case e of
+    Left msg -> do 
+      langs <- languages
+      site  <- getYesod
+      return $ FormFailure [renderMessage site langs msg]
+    Right Nothing -> return FormMissing
+    Right (Just a) -> return (FormSuccess a)
+
 fullValidate :: MonadHandler m 
   => ([Text] -> [FileInfo] -> m (FormResult a)) 
   -> (a -> m (Either (SomeMessage (HandlerSite m)) a))
@@ -170,15 +264,18 @@ fullValidate parser validate ts fs = do
 
 text :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m Text -> GForm (WidgetT site IO ()) m Text
-text = simple "text" (gparseHelper (return . specialRight) Nothing) id
+text = simple "text" 
+  (gparseHelper (return . Right) Nothing) id
 
 textOpt :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m (Maybe Text) -> GForm (WidgetT site IO ()) m (Maybe Text)
-textOpt = simple "text" (gparseHelper (return . specialRight . Just) (Just Nothing)) (fromMaybe "")
+textOpt = simple "text" (gparseHelper (return . Right . Just) (Just Nothing)) (fromMaybe "")
 
 textCheck :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m (Maybe Text) -> GForm (WidgetT site IO ()) m (Maybe Text)
-textCheck = simpleCheck "text" (gparseHelper (return . specialRight . Just) Nothing) (fromMaybe "")
+textCheck = simpleCheck "text" 
+  (gparseHelper (return . Right . Just) Nothing) 
+  (fromMaybe "")
 
 int :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m Int -> GForm (WidgetT site IO ()) m Int
@@ -186,15 +283,21 @@ int = simple "number" (gparseHelper (return . parseInt) Nothing) (Text.pack . sh
 
 intCheck :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m (Maybe Int) -> GForm (WidgetT site IO ()) m (Maybe Int)
-intCheck = simpleCheck "number" (gparseHelper (return . fmap Just . parseInt) Nothing) (maybe "" (Text.pack . show))
+intCheck = simpleCheck "number" 
+  (gparseHelper (return . fmap Just . parseInt) Nothing) 
+  (maybe "" (Text.pack . show))
 
 day :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m Day -> GForm (WidgetT site IO ()) m Day
-day = simple "date" (gparseHelper (return . parseDate . Text.unpack) Nothing) (Text.pack . show)
+day = simple "date" 
+  (gparseHelper (return . mapLeft SomeMessage . parseDate . Text.unpack) Nothing) 
+  (Text.pack . show)
 
 dayCheck :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m (Maybe Day) -> GForm (WidgetT site IO ()) m (Maybe Day)
-dayCheck = simpleCheck "date" (gparseHelper (return . fmap Just . parseDate . Text.unpack) Nothing) (maybe "" (Text.pack . show))
+dayCheck = simpleCheck "date" 
+  (gparseHelper (return . fmap Just . mapLeft SomeMessage . parseDate . Text.unpack) Nothing)
+  (maybe "" (Text.pack . show))
 -- 
 -- email :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
 --   => WidgetT site IO () -> Maybe Text -> GForm (WidgetT site IO ()) m Text
@@ -212,9 +315,9 @@ bool config = ghelper UrlEncoded (fullValidate (gparseHelper (return . checkBoxP
     input_ $ applyVal [("name",name),("value","yes"),("type","checkbox")]
     fromMaybe mempty $ _fcLabel config
 
-checkBoxParser :: Text -> Either Text Bool
+checkBoxParser :: Text -> Either (SomeMessage site) Bool
 checkBoxParser x = case x of
-  "yes" -> Right True :: Either Text Bool
+  "yes" -> Right True 
   "on"  -> Right True
   _     -> Right False
 
@@ -226,16 +329,16 @@ textEmailValidate t = if Email.isValid (Text.encodeUtf8 t)
 submit :: Monad m => Context -> Text -> GForm (WidgetT site IO ()) m ()
 submit ctx t = monoidToGForm $ button_ [("type","submit"),("class","btn btn-" <> contextName ctx)] $ tw t
 
-parseInt :: Text -> Either FormMessage Int
+parseInt :: RenderMessage site FormMessage => Text -> Either (SomeMessage site) Int
 parseInt t = case readMaybe (Text.unpack t) of
-  Nothing -> Left (MsgInvalidInteger t)
+  Nothing -> Left (SomeMessage (MsgInvalidInteger t))
   Just n -> Right n
   
-specialRight :: a -> Either Text a 
-specialRight = Right
+-- specialRight :: a -> Either Text a 
+-- specialRight = Right
 
-gparseHelper :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage, RenderMessage site msg)
-             => (Text -> m (Either msg a))
+gparseHelper :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
+             => (Text -> m (Either (SomeMessage site) a))
              -> (Maybe a) -- ^ If this is Just, then the field is not required.
              -> [Text] -> [FileInfo] -> m (FormResult a)
 gparseHelper _ mdef [] _ = return $ case mdef of
@@ -255,4 +358,8 @@ gparseHelper f _ (x:_) _  = do
       site <- getYesod
       return $ FormFailure [renderMessage site langs msg]
     Right a -> return (FormSuccess a)
+
+whenMaybe :: Applicative m => Maybe a -> (a -> m ()) -> m ()
+whenMaybe Nothing _ = pure ()
+whenMaybe (Just a) f = f a
 

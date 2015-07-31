@@ -7,6 +7,7 @@ import           Control.Applicative ((<$>), (<*>))
 import           Data.Text           (Text)
 import           Data.Time           (Day)
 import           Yesod
+import           Yesod.Static
 import           Yesod.Form.Jquery
 import           Yesod.Form.Generic.Bootstrap.Widget as B
 import           Yesod.Form.Generic (GForm)
@@ -17,13 +18,20 @@ import           Data.Char
 import qualified Data.Text as Text
 
 data App = App
+  { appStatic :: Static
+  }
 
 mkYesod "App" [parseRoutes|
+/static StaticR Static appStatic
 / HomeR GET
 /person PersonR POST
 |]
 
 instance Yesod App
+
+instance YesodUpload App where
+  uploadDirectory _ = "example/upload"
+  uploadRoute (UploadFilename t) = StaticR (StaticRoute [t] [])
 
 -- Tells our application to use the standard English messages.
 -- If you want i18n, then you can supply a translating function instead.
@@ -36,15 +44,15 @@ instance YesodJquery App
 
 -- The datatype we wish to receive from the form
 data Person = Person
-    { personName          :: Text
-    , personBirthday      :: Maybe Day
-    , personFavoriteColor :: Maybe Text
-    -- , personEmail         :: Text
-    , personAge           :: Maybe Int
-    , personWebsite       :: Maybe Text
-    , personAlive         :: Bool
-    }
-  deriving Show
+  { personName          :: Text
+  , personBirthday      :: Maybe Day
+  , personFavoriteColor :: Maybe Text
+  -- , personEmail         :: Text
+  , personAge           :: Maybe Int
+  , personWebsite       :: Text
+  , personAlive         :: Bool
+  , personUpload        :: UploadFilename
+  } deriving Show
 
 personGForm :: GForm Widget Handler Person
 personGForm = Person
@@ -53,9 +61,12 @@ personGForm = Person
   <*> B.textCheck (label "Favorite Color" & fcValue .~ Just Nothing) 
   -- <*> B.email (label "Email") 
   <*> B.intCheck (label "Age" & fcValue .~ Just (Just 44)) 
-  <*> B.textOpt (label "Website") 
+  <*> B.select websites ("Website" & fcValue .~ Just "drew.com")
   <*> B.bool (label "Currently Living") 
+  <*> B.file ("File" & fcValue .~ Just (UploadFilename "VBFWZXVZNSBCCCSDWGMMQNNF.png"))
   <*  B.submit Primary "Create"
+  where websites = optionsPairs $ map (\a -> (a,a))
+          ["google.com","drew.com","yahoo.com"]
 
 startsCapital :: Text -> Handler (Either (SomeMessage App) Text)
 startsCapital t = return $ case Text.unpack t of
@@ -99,4 +110,6 @@ postPersonR = do
             |]
 
 main :: IO ()
-main = warp 3000 App
+main = do
+  s <- static "example/upload"
+  warp 3000 (App s)
