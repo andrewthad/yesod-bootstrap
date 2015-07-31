@@ -18,11 +18,14 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Yesod.Bootstrap
                      , Yesod.Form.Generic
-                     , Yesod.Form.Generic.Bootstrap.Widget
+                     , Yesod.Form.Generic.Bootstrap
+                     , Yesod.Form.Generic.Bootstrap.Internal
   default-extensions:  QuasiQuotes
                      , GeneralizedNewtypeDeriving
                      , TypeFamilies
+                     , MultiParamTypeClasses
                      , FlexibleContexts
+                     , FlexibleInstances
                      , OverloadedStrings
                      , TemplateHaskell
   build-depends:       base >=4.7 && <5.0
@@ -41,5 +44,9 @@ library
                      , either
                      , MonadRandom
                      , persistent
+                     , yesod-markdown
+                     , conduit
+                     , conduit-extra
+                     , blaze-markup
   hs-source-dirs:      src
   default-language:    Haskell2010

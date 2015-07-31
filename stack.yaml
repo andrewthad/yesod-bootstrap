@@ -2,5 +2,6 @@ flags:
   yesod-bootstrap: {}
 packages:
 - '.'
-extra-deps: []
+extra-deps:
+- 'yesod-markdown-0.9.4'
 resolver: lts-2.17

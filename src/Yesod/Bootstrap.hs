@@ -43,6 +43,9 @@ input_ attrs = [whamlet|<input *{mkStrAttrs attrs}>|]
 img_ :: [(Text,Text)] -> WidgetT site IO ()
 img_ attrs = [whamlet|<img *{mkStrAttrs attrs}>|]
 
+textarea_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+textarea_ attrs inner = [whamlet|<textarea *{mkStrAttrs attrs}>^{inner}|]
+
 h1_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 h1_ attrs inner = [whamlet|<h1 *{mkStrAttrs attrs}>^{inner}|]
 

@@ -1,4 +1,4 @@
-module Yesod.Form.Generic.Bootstrap.Widget where
+module Yesod.Form.Generic.Bootstrap where
 
 import Yesod.Form
 import Yesod.Form.Generic
@@ -25,6 +25,32 @@ import Data.String
 import Control.Monad.Random
 import Database.Persist (PersistField)
 import Database.Persist.Sql (PersistFieldSql)
+import Yesod.Markdown
+import Data.Conduit
+import Data.Conduit.Lazy (lazyConsume)
+import qualified Data.Conduit.Text as Conduit
+import Text.Blaze.Html (preEscapedToHtml)
+import Yesod.Form.Generic.Bootstrap.Internal 
+
+class YesodMarkdownRender site where
+  markdownRenderSubsite :: Route MarkdownRender -> Route site
+
+instance YesodSubDispatch MarkdownRender (HandlerT master IO) where
+  yesodSubDispatch = $(mkYesodSubDispatch resourcesMarkdownRender)
+
+getMarkdownRender :: a -> MarkdownRender
+getMarkdownRender = const MarkdownRender
+
+postMarkdownRenderR :: HandlerT MarkdownRender (HandlerT site IO) Html
+postMarkdownRenderR = do
+  ts <- lazyConsume $ rawRequestBody =$= Conduit.decode Conduit.utf8
+  let mkd = Markdown $ Text.concat ts
+  return $ markdownToHtmlCustom mkd
+
+markdownToHtmlCustom :: Markdown -> Html
+markdownToHtmlCustom m@(Markdown t)
+  | m == mempty = preEscapedToHtml ("<span class=\"text-muted\">Preview</span>" :: Text)
+  | otherwise   = markdownToHtml (Markdown (Text.filter (/= '\r') t))
 
 data FieldConfig m a = FieldConfig
   { _fcLabel :: Maybe (WidgetT (HandlerSite m) IO ())
@@ -71,7 +97,6 @@ simple typ parser display config = ghelper UrlEncoded (fullValidate parser (_fcV
     FormMissing -> formGroup $ baseInput $ maybe "" display (_fcValue config)
     FormSuccess a -> (if greenOnSuccess then formGroupFeedback Success else formGroup) $ do
       baseInput (display a)
-      glyphiconFeedback "ok"
     FormFailure errs -> formGroupFeedback Error $ do
       baseInput $ fromMaybe "" $ listToMaybe vals
       glyphiconFeedback "remove"
@@ -100,11 +125,9 @@ simpleCheck typ parser display config = formToGForm $ do
       (_, FormSuccess a) -> (if greenOnSuccess then formGroupFeedback Success else formGroup) $ do
         maybe mempty controlLabel (_fcLabel config)
         baseInputGroup (display a)
-        glyphiconFeedback "ok"
       (False,FormFailure errs) -> (if greenOnSuccess then formGroupFeedback Success else formGroup) $ do
         maybe mempty controlLabel (_fcLabel config)
         baseInputGroup ""
-        glyphiconFeedback "ok"
       (True,FormFailure errs) -> formGroupFeedback Error $ do
         maybe mempty controlLabel (_fcLabel config)
         baseInputGroup $ fromMaybe "" $ listToMaybe vals
@@ -142,6 +165,59 @@ class YesodUpload site where
   uploadDirectory :: site -> String
   uploadRoute :: UploadFilename -> Route site
 
+markdown :: (YesodMarkdownRender site, MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
+  => FieldConfig m Markdown -> GForm (WidgetT site IO ()) m Markdown
+markdown c = ghelper UrlEncoded (fullValidate (gparseHelper (return . Right . Markdown . Text.filter (/= '\r')) Nothing) (_fcValidate c)) 
+  $ \name vals res -> do
+    wellId <- newIdent
+    inputId <- newIdent
+    render <- getUrlRender
+    markdownJs wellId inputId (render $ markdownRenderSubsite MarkdownRenderR)
+    let theWell = helpBlock . div_ [("class","well well-sm"),("id",wellId)] . toWidget
+        baseAttrs = [("class","form-control"),("name",name),("rows","5"),("id",inputId)]
+        addReadonly = if (_fcReadonly c) then (("readonly","readonly"):) else id
+        attrs = addReadonly baseAttrs
+        baseInput t = do
+          whenMaybe (_fcLabel c) controlLabel
+          textarea_ attrs (tw t)
+    case res of
+      FormMissing -> formGroup $ do
+        baseInput $ maybe "" unMarkdown (_fcValue c)
+        theWell $ markdownToHtmlCustom $ fromMaybe mempty (_fcValue c)
+      FormSuccess a -> (if greenOnSuccess then formGroupFeedback Success else formGroup) $ do
+        baseInput (unMarkdown a)
+        theWell $ markdownToHtmlCustom a
+      FormFailure errs -> formGroupFeedback Error $ do
+        baseInput $ fromMaybe "" $ listToMaybe vals
+        glyphiconFeedback "remove"
+        theWell $ markdownToHtmlCustom mempty
+        helpBlock $ ul_ [("class","list-unstyled")] $ mapM_ (li_ [] . tw) errs
+
+markdownJs :: Text -> Text -> Text -> WidgetT site IO ()
+markdownJs wellId inputId url = toWidget [julius|
+$().ready(function(){
+  var hasChanged = false;
+  var input = $('##{rawJS inputId}');
+  var well = $('##{rawJS wellId}');
+  var runUpdate = function(){
+    if(!hasChanged) return;
+    $.ajax({ type: "POST"
+           , url: "#{rawJS url}"
+           , data: input.val()
+           , dataType: 'html'
+           , success: function(data) {
+               well.html(data);
+               hasChanged = false;
+             } 
+           });
+  };
+  setInterval(runUpdate, 1000);
+  input.on('input',function(){
+    hasChanged = true;
+  });
+});
+|]
+
 file :: (YesodUpload site, MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m UploadFilename -> GForm (WidgetT site IO ()) m UploadFilename
 file c = ghelper Multipart
@@ -154,7 +230,7 @@ file c = ghelper Multipart
         _ -> mempty
       whenMaybe (_fcValue c) $ \filename -> do
         render <- getUrlRender
-        img_ [("width","140"),("src",render $ uploadRoute filename),("class","img-thumbnail")]
+        helpBlock $ img_ [("width","140"),("src",render $ uploadRoute filename),("class","img-thumbnail")]
     
   
 fileParseHelper :: (YesodUpload site, MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
