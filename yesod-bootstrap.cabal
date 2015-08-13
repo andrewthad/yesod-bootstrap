@@ -44,7 +44,7 @@ library
                      , either
                      , MonadRandom
                      , persistent
-                     , yesod-markdown
+                     , yesod-markdown >= 0.10.0
                      , conduit
                      , conduit-extra
                      , blaze-markup
