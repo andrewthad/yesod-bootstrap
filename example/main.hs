@@ -64,13 +64,13 @@ data Person = Person
 
 personGForm :: GForm Widget Handler Person
 personGForm = Person
-  <$> B.text (label "Name" & fcValue .~ Just "Drew")
-  <*> B.dayCheck (label "Birthday") 
-  <*> B.textCheck (label "Favorite Color" & fcValue .~ Just Nothing) 
+  <$> B.text ("Name" & fcValue .~ Just "Drew")
+  <*> B.dayCheck "Birthday"
+  <*> B.textCheck ("Favorite Color" & fcValue .~ Just Nothing) 
   -- <*> B.email (label "Email") 
-  <*> B.intCheck (label "Age" & fcValue .~ Just (Just 44)) 
+  <*> B.intCheck ("Age" & fcValue .~ Just (Just 44)) 
   <*> B.select websites ("Website" & fcValue .~ Just "drew.com")
-  <*> B.bool (label "Currently Living") 
+  <*> B.bool "Currently Living"
   <*> B.file ("File" & fcValue .~ Just (UploadFilename "VBFWZXVZNSBCCCSDWGMMQNNF.png"))
   <*> B.markdown "Description"
   <*  B.submit Primary "Create"

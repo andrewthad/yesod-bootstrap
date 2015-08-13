@@ -51,7 +51,9 @@ postMarkdownRenderR = do
 markdownToHtmlCustom :: Markdown -> Html
 markdownToHtmlCustom m@(Markdown t)
   | m == mempty = preEscapedToHtml ("<span class=\"text-muted\">Preview</span>" :: Text)
-  | otherwise   = markdownToHtml (Markdown (Text.filter (/= '\r') t))
+  | otherwise   = case markdownToHtml (Markdown (Text.filter (/= '\r') t)) of
+      Left _ -> preEscapedToHtml ("<span class=\"text-muted\">Could not render</span>" :: Text)
+      Right a -> a
 
 data FieldConfig m a = FieldConfig
   { _fcLabel :: Maybe (WidgetT (HandlerSite m) IO ())
