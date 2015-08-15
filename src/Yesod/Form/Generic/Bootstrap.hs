@@ -8,6 +8,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Text.Email.Validate as Email
+import qualified Data.Yaml as Yaml
 import Text.Shakespeare.I18N (RenderMessage)
 import Yesod.Bootstrap
 import Data.Maybe
@@ -50,7 +51,9 @@ postMarkdownRenderR = do
 markdownToHtmlCustom :: Markdown -> Html
 markdownToHtmlCustom m@(Markdown t)
   | m == mempty = preEscapedToHtml ("<span class=\"text-muted\">Preview</span>" :: Text)
-  | otherwise   = markdownToHtml (Markdown (Text.filter (/= '\r') t))
+  | otherwise   = case markdownToHtml (Markdown (Text.filter (/= '\r') t)) of
+      Left _ -> preEscapedToHtml ("<span class=\"text-muted\">Could not render</span>" :: Text)
+      Right a -> a
 
 data FieldConfig m a = FieldConfig
   { _fcLabel :: Maybe (WidgetT (HandlerSite m) IO ())
@@ -161,6 +164,54 @@ newtype UploadFilename = UploadFilename Text
 class YesodUpload site where
   uploadDirectory :: site -> String
   uploadRoute :: UploadFilename -> Route site
+
+yaml :: (FromJSON a, ToJSON a, HandlerSite m ~ site, MonadHandler m, RenderMessage site FormMessage) 
+  => a -> FieldConfig m a -> GForm (WidgetT site IO ()) m a
+yaml example c = ghelper UrlEncoded (fullValidate (gparseHelper (return . mapLeft (SomeMessage . Text.pack) . Yaml.decodeEither . Text.encodeUtf8) Nothing) (_fcValidate c))
+  $ \name vals res -> do
+    preId    <- newIdent
+    buttonId <- newIdent
+    yamlJs preId buttonId
+    let thePre = pre_ [("id",preId),("style","display:none")] $ tw $ yamlEncodeText example
+        baseAttrs = [("class","form-control"),("name",name),("rows","5")]
+        addReadonly = if (_fcReadonly c) then (("readonly","readonly"):) else id
+        attrs = addReadonly baseAttrs
+        baseInput t = do
+          whenMaybe (_fcLabel c) controlLabel
+          textarea_ attrs (tw t)
+    case res of
+      FormMissing -> formGroup $ do
+        baseInput $ maybe "" yamlEncodeText (_fcValue c)
+        button_ [("class","btn btn-link"),("id",buttonId),("type","button")] $ tw "Show Example"
+        thePre
+      FormSuccess a -> (if greenOnSuccess then formGroupFeedback Success else formGroup) $ do
+        baseInput (yamlEncodeText a)
+        button_ [("class","btn btn-link"),("id",buttonId),("type","button")] $ tw "Show Example"
+        thePre
+      FormFailure errs -> formGroupFeedback Error $ do
+        baseInput $ fromMaybe "" $ listToMaybe vals
+        glyphiconFeedback "remove"
+        helpBlock $ ul_ [("class","list-unstyled")] $ mapM_ (li_ [] . tw) errs
+        button_ [("class","btn btn-link"),("id",buttonId),("type","button")] $ tw "Show Example"
+        thePre
+  where yamlEncodeText = Text.decodeUtf8 . Yaml.encode
+  
+yamlJs :: Text -> Text -> WidgetT site IO ()
+yamlJs preId buttonId = toWidget [julius|
+$().ready(function(){
+  var showing = false;
+  var button = $('##{rawJS buttonId}');
+  var pre = $('##{rawJS preId}');
+  button.click(function(){
+    showing = !showing;
+    pre.slideToggle();
+    if(showing)
+      button.text("Hide Example");
+    else
+      button.text("Show Example");
+  });
+});
+|]
 
 markdown :: (YesodMarkdownRender site, MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => FieldConfig m Markdown -> GForm (WidgetT site IO ()) m Markdown

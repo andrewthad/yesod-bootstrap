@@ -43,6 +43,9 @@ script_ attrs inner = [whamlet|<script *{mkStrAttrs attrs}>^{inner}|]
 label_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 label_ attrs inner = [whamlet|<label *{mkStrAttrs attrs}>^{inner}|]
 
+pre_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+pre_ attrs inner = [whamlet|<pre *{mkStrAttrs attrs}>^{inner}|]
+
 input_ :: [(Text,Text)] -> WidgetT site IO ()
 input_ attrs = [whamlet|<input *{mkStrAttrs attrs}>|]
 
@@ -79,8 +82,14 @@ ul_ attrs inner = [whamlet|<ul *{mkStrAttrs attrs}>^{inner}|]
 li_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 li_ attrs inner = [whamlet|<li *{mkStrAttrs attrs}>^{inner}|]
 
+small_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+small_ attrs inner = [whamlet|<small *{mkStrAttrs attrs}>^{inner}|]
+
 a_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 a_ attrs inner = [whamlet|<a *{mkStrAttrs attrs}>^{inner}|]
+
+anchor :: Route site -> WidgetT site IO () -> WidgetT site IO ()
+anchor route inner = [whamlet|<a href="@{route}">^{inner}|]
 
 button_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 button_ attrs inner = [whamlet|<button *{mkStrAttrs attrs}>^{inner}|]
