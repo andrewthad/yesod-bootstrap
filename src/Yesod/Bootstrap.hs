@@ -34,6 +34,12 @@ div_ attrs inner = [whamlet|<div *{mkStrAttrs attrs}>^{inner}|]
 span_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 span_ attrs inner = [whamlet|<span *{mkStrAttrs attrs}>^{inner}|]
 
+form_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+form_ attrs inner = [whamlet|<form *{mkStrAttrs attrs}>^{inner}|]
+
+script_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+script_ attrs inner = [whamlet|<script *{mkStrAttrs attrs}>^{inner}|]
+
 label_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 label_ attrs inner = [whamlet|<label *{mkStrAttrs attrs}>^{inner}|]
 
