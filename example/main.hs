@@ -65,14 +65,13 @@ data Person = Person
 personGForm :: GForm Widget Handler Person
 personGForm = Person
   <$> B.text ("Name" & fcValue .~ Just "Drew")
-  <*> B.dayCheck "Birthday"
+  <*> B.dayCheck ("Birthday") 
   <*> B.textCheck ("Favorite Color" & fcValue .~ Just Nothing) 
-  -- <*> B.email (label "Email") 
   <*> B.intCheck ("Age" & fcValue .~ Just (Just 44)) 
   <*> B.select websites ("Website" & fcValue .~ Just "drew.com")
-  <*> B.bool "Currently Living"
+  <*> B.bool ("Currently Living") 
   <*> B.file ("File" & fcValue .~ Just (UploadFilename "VBFWZXVZNSBCCCSDWGMMQNNF.png"))
-  <*> B.markdown "Description"
+  <*> B.markdown ("Description" & fcValue .~ (Just "test value"))
   <*  B.submit Primary "Create"
   where websites = optionsPairs $ map (\a -> (a,a))
           ["google.com","drew.com","yahoo.com"]

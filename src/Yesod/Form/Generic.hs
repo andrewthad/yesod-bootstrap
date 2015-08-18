@@ -71,6 +71,14 @@ gFormToForm (GForm gform) = do
   tell enc
   return (a, w)
 
+gFormToFormCsrf :: (Monad m, HandlerSite m ~ site)
+                => GForm (WidgetT site IO ()) m a
+                -> Html
+                -> MForm m (FormResult a, (WidgetT site IO ()))
+gFormToFormCsrf g h = do
+  (r,w) <- gFormToForm g
+  return (r,toWidget h <> w)
+
 monoidToGForm :: Monad m => w -> GForm w m ()
 monoidToGForm w = formToGForm $ return (FormSuccess (), w)
 
