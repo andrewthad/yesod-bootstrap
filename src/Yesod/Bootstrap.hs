@@ -49,6 +49,9 @@ pre_ attrs inner = [whamlet|<pre *{mkStrAttrs attrs}>^{inner}|]
 input_ :: [(Text,Text)] -> WidgetT site IO ()
 input_ attrs = [whamlet|<input *{mkStrAttrs attrs}>|]
 
+hr_ :: [(Text,Text)] -> WidgetT site IO ()
+hr_ attrs = [whamlet|<hr *{mkStrAttrs attrs}>|]
+
 img_ :: [(Text,Text)] -> WidgetT site IO ()
 img_ attrs = [whamlet|<img *{mkStrAttrs attrs}>|]
 
@@ -140,6 +143,10 @@ controlLabel = label_ [("class","control-label")]
 helpBlock :: WidgetT site IO () -> WidgetT site IO ()
 helpBlock = div_ [("class","help-block")]
 
+button :: Context -> Size -> WidgetT site IO () -> WidgetT site IO ()
+button ctx size inner = do
+  button_ [("class","btn btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
+
 anchorButton :: Context -> Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchorButton ctx route inner = do
   render <- getUrlRender
@@ -183,6 +190,67 @@ contextName c = case c of
   Primary -> "primary"
   Link -> "link"
   Error -> "error"
+  Danger -> "danger"
+
+data NavbarTheme = NavbarDefault | NavbarInverse | NavbarOtherTheme Text
+data NavbarPosition = NavbarStandard | NavbarStaticTop | NavbarFixedTop
+data NavbarItem site 
+  = NavbarLink (Route site) (WidgetT site IO ())
+  | NavbarDropdown (WidgetT site IO ()) [NavbarDropdownItem site]
+
+data NavbarDropdownItem site 
+  = NavbarDropdownLink (Route site) (WidgetT site IO ())
+  | NavbarDropdownHeader (WidgetT site IO ())
+  | NavbarDropdownSeparator
+
+navbar :: 
+     NavbarTheme
+  -> NavbarPosition 
+  -> Route site 
+  -> WidgetT site IO ()
+  -> [NavbarItem site]
+  -> [NavbarItem site]
+  -> WidgetT site IO ()
+navbar theme pos headerRoute headerContent items rightItems = do
+  navbarId <- newIdent
+  render <- getUrlRender
+  nav_ [("class","navbar " <> themeClass <> " " <> posClass)] $ do
+    div_ [("class",containerClass)] $ do
+      div_ [("class", "navbar-header")] $ do
+        button_ [ ("class", "navbar-toggle collapsed"),("type","button"),("data-target",navbarId)
+                , ("data-toggle", "collapse")
+                ] $ do
+          span_ [("class","sr-only")] $ tw "Toggle Navigation"
+          replicateM_ 3 $ span_ [("class","icon-bar")] 
+        a_ [("href", render headerRoute),("class","navbar-header")] headerContent
+      div_ [("class","navbar-collapse collapse"), ("id", navbarId)] $ do
+        ul_ [("class","nav navbar-nav")] $ forM_ 
+        ul_ [("class","nav navbar-nav navbar-right")]
+  where 
+  themeClass = case theme of
+    NavbarDefault -> "navbar-default" 
+    NavbarInverse -> "navbar-inverse" 
+    NavbarOtherTheme t -> "navbar-" <> t
+  posClass = case pos of
+    NavbarStandard -> ""
+    NavbarStaticTop -> "navbar-static-top"
+    NavbarFixedTop -> "navbar-fixed-top"
+  containerClass = case pos of
+    NavbarStandard -> "container-fluid"
+    NavbarStaticTop -> "container"
+    NavbarFixedTop -> "container"
+  
+navbarItem :: NavbarItem site -> WidgetT site IO ()
+navbarItem item = do
+  render <- getUrlRender
+  li_ [] $ case item of
+    NavbarLink route name -> anchor route name
+    NavbarDropdown name children -> do
+      a_ [ ("class","dropdown-toggle"), ("href", "#")
+         , ("role", "button"), ("data-toggle", "dropdown")
+         ] name
+      ul_ [("class","dropdown-menu")] $ do
+        -- working here
 
 -- Stands for text widget
 tw :: Text -> WidgetT site IO ()
