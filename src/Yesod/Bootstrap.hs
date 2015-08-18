@@ -79,6 +79,9 @@ p_ attrs inner = [whamlet|<p *{mkStrAttrs attrs}>^{inner}|]
 ul_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 ul_ attrs inner = [whamlet|<ul *{mkStrAttrs attrs}>^{inner}|]
 
+ol_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+ol_ attrs inner = [whamlet|<ol *{mkStrAttrs attrs}>^{inner}|]
+
 li_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 li_ attrs inner = [whamlet|<li *{mkStrAttrs attrs}>^{inner}|]
 
@@ -208,9 +211,18 @@ togglableTabs s tabs = do
           ToggleStylePill -> "nav-pills"
     ul_ [("class","nav " <> styleText),("role","tablist")] nav
     div_ [("class","tab-content")] bodies
-  where tellFst a = tell (a,mempty)
-        tellSnd b = tell (mempty,b)
-        addClass :: Text -> [(Text,Text)] -> [(Text,Text)]
-        addClass klass attrs = case List.lookup "class" attrs of
-          Nothing -> ("class",klass) : attrs
-          Just c -> ("class",c <> " " <> klass) : List.deleteBy ((==) `on` fst) ("class","") attrs
+  where 
+  tellFst a = tell (a,mempty)
+  tellSnd b = tell (mempty,b)
+  addClass :: Text -> [(Text,Text)] -> [(Text,Text)]
+  addClass klass attrs = case List.lookup "class" attrs of
+    Nothing -> ("class",klass) : attrs
+    Just c -> ("class",c <> " " <> klass) : List.deleteBy ((==) `on` fst) ("class","") attrs
+
+breadcrumbsList :: [(Route site,WidgetT site IO ())] -> WidgetT site IO ()
+breadcrumbsList allCrumbs = case reverse allCrumbs of
+  (_,lastCrumbWidget):crumbs -> ol_ [("class","breadcrumb")] $ do
+    forM_ crumbs $ \(route,name) -> li_ [] $ anchor route name
+    li_ [("class","active")] lastCrumbWidget
+  [] -> mempty
+
