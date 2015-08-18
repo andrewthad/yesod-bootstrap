@@ -3,5 +3,5 @@ flags:
 packages:
 - '.'
 extra-deps:
-- 'yesod-markdown-0.9.4'
-resolver: lts-2.17
+- 'yesod-markdown-0.10.0'
+resolver: lts-3.0

@@ -34,6 +34,9 @@ div_ attrs inner = [whamlet|<div *{mkStrAttrs attrs}>^{inner}|]
 span_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 span_ attrs inner = [whamlet|<span *{mkStrAttrs attrs}>^{inner}|]
 
+nav_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+nav_ attrs inner = [whamlet|<nav *{mkStrAttrs attrs}>^{inner}|]
+
 form_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 form_ attrs inner = [whamlet|<form *{mkStrAttrs attrs}>^{inner}|]
 
@@ -217,15 +220,16 @@ navbar theme pos headerRoute headerContent items rightItems = do
   nav_ [("class","navbar " <> themeClass <> " " <> posClass)] $ do
     div_ [("class",containerClass)] $ do
       div_ [("class", "navbar-header")] $ do
-        button_ [ ("class", "navbar-toggle collapsed"),("type","button"),("data-target",navbarId)
-                , ("data-toggle", "collapse")
+        button_ [ ("class", "navbar-toggle collapsed"),("type","button")
+                , ("data-toggle", "collapse"), ("aria-expanded", "false")
+                , ("aria-controls", navbarId),("data-target", "#" <> navbarId)
                 ] $ do
           span_ [("class","sr-only")] $ tw "Toggle Navigation"
-          replicateM_ 3 $ span_ [("class","icon-bar")] 
-        a_ [("href", render headerRoute),("class","navbar-header")] headerContent
+          replicateM_ 3 $ span_ [("class","icon-bar")] mempty
+        a_ [("href", render headerRoute),("class","navbar-brand")] headerContent
       div_ [("class","navbar-collapse collapse"), ("id", navbarId)] $ do
-        ul_ [("class","nav navbar-nav")] $ forM_ 
-        ul_ [("class","nav navbar-nav navbar-right")]
+        ul_ [("class","nav navbar-nav")] $ mapM_ navbarItem items
+        ul_ [("class","nav navbar-nav navbar-right")] $ mapM_ navbarItem rightItems
   where 
   themeClass = case theme of
     NavbarDefault -> "navbar-default" 
@@ -249,8 +253,15 @@ navbarItem item = do
       a_ [ ("class","dropdown-toggle"), ("href", "#")
          , ("role", "button"), ("data-toggle", "dropdown")
          ] name
-      ul_ [("class","dropdown-menu")] $ do
-        -- working here
+      ul_ [("class","dropdown-menu")] $ mapM_ navbarDropdownItem children
+
+navbarDropdownItem :: NavbarDropdownItem site -> WidgetT site IO ()
+navbarDropdownItem item = do
+  render <- getUrlRender
+  case item of
+    NavbarDropdownLink route name -> li_ [] $ anchor route name
+    NavbarDropdownHeader name -> li_ [("class","dropdown-header")] name
+    NavbarDropdownSeparator -> li_ [("class","separator"),("role","divider")] mempty
 
 -- Stands for text widget
 tw :: Text -> WidgetT site IO ()
