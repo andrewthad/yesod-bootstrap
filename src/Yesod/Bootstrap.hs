@@ -43,6 +43,9 @@ pre_ attrs inner = [whamlet|<pre *{mkStrAttrs attrs}>^{inner}|]
 input_ :: [(Text,Text)] -> WidgetT site IO ()
 input_ attrs = [whamlet|<input *{mkStrAttrs attrs}>|]
 
+hr_ :: [(Text,Text)] -> WidgetT site IO ()
+hr_ attrs = [whamlet|<hr *{mkStrAttrs attrs}>|]
+
 img_ :: [(Text,Text)] -> WidgetT site IO ()
 img_ attrs = [whamlet|<img *{mkStrAttrs attrs}>|]
 
@@ -130,6 +133,10 @@ controlLabel = label_ [("class","control-label")]
 
 helpBlock :: WidgetT site IO () -> WidgetT site IO ()
 helpBlock = div_ [("class","help-block")]
+
+button :: Context -> Size -> WidgetT site IO () -> WidgetT site IO ()
+button ctx size inner = do
+  a_ [("class","btn btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
 
 anchorButton :: Context -> Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchorButton ctx route inner = do
