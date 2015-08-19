@@ -122,6 +122,9 @@ checkbox = div_ [("class","checkbox")]
 alert :: Context -> WidgetT site IO () -> WidgetT site IO ()
 alert ctx = div_ [("class","alert alert-" <> contextName ctx)]
 
+caret :: WidgetT site IO ()
+caret = span_ [("class","caret")] mempty
+
 glyphicon :: Text -> WidgetT site IO ()
 glyphicon s = span_ [("class","glyphicon glyphicon-" <> s)] mempty
 
@@ -301,7 +304,7 @@ togglableTabs s tabs = do
 breadcrumbsList :: [(Route site,WidgetT site IO ())] -> WidgetT site IO ()
 breadcrumbsList allCrumbs = case reverse allCrumbs of
   (_,lastCrumbWidget):crumbs -> ol_ [("class","breadcrumb")] $ do
-    forM_ crumbs $ \(route,name) -> li_ [] $ anchor route name
+    forM_ (reverse crumbs) $ \(route,name) -> li_ [] $ anchor route name
     li_ [("class","active")] lastCrumbWidget
   [] -> mempty
 
