@@ -102,6 +102,57 @@ simple typ parser display config = ghelper UrlEncoded (fullValidate parser (_fcV
       glyphiconFeedback "remove"
       helpBlock $ ul_ [("class","list-unstyled")] $ mapM_ (li_ [] . tw) errs
 
+class YesodTypeahead site where
+  routeTypeaheadJs :: site -> Route site
+  routeTypeaheadCss :: site -> Route site
+
+-- The result from the route is expected to be a JSON array. Also, the route
+-- is expected to respond to a POST request with the body as the text we are
+-- searching for.
+typeahead :: (YesodTypeahead site, MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
+  => Route site -> FieldConfig m Text -> GForm (WidgetT site IO ()) m Text
+typeahead route config = ghelper UrlEncoded (fullValidate parser (_fcValidate config)) $ \name vals res -> do
+  inputId <- newIdent
+  let baseAttrs = [("id",inputId),("class","form-control"),("name",name),("type","text")]
+      addReadonly = if _fcReadonly config then (("readonly","readonly"):) else id
+      attrs = addReadonly baseAttrs
+      baseInput t = do
+        whenMaybe (_fcLabel config) controlLabel
+        input_ attrs
+  yesod <- getYesod
+  addStylesheet $ routeTypeaheadCss yesod
+  addScript $ routeTypeaheadJs yesod
+  typeaheadJs route inputId 
+  case res of
+    FormMissing -> formGroup $ baseInput $ maybe "" display (_fcValue config)
+    FormSuccess a -> (if greenOnSuccess then formGroupFeedback Success else formGroup) $ do
+      baseInput (display a)
+    FormFailure errs -> formGroupFeedback Error $ do
+      baseInput $ fromMaybe "" $ listToMaybe vals
+      glyphiconFeedback "remove"
+      helpBlock $ ul_ [("class","list-unstyled")] $ mapM_ (li_ [] . tw) errs
+  where parser = (gparseHelper (return . Right) Nothing)
+        display = id
+
+typeaheadJs :: Route site -> Text -> WidgetT site IO ()
+typeaheadJs route inputId = toWidget [julius|
+$().ready(function(){
+  var serNum = $('##{rawJS inputId}');
+  serNum.typeahead({
+    source: function (query, process) {
+      return $.post('@{route}', query, function(data){
+        return process(data);
+      });
+    },
+    items: 'all',
+    minLength: 2,
+    afterSelect: function(ser) { 
+      // serNum.closest('form').submit();
+    }
+  });     
+});
+|]
+
 simpleCheck :: (MonadHandler m, HandlerSite m ~ site, RenderMessage site FormMessage)
   => Text -- ^ input type
   -> ([Text] -> [FileInfo] -> m (FormResult (Maybe a)))
