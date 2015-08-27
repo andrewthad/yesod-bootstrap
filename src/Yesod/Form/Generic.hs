@@ -28,6 +28,11 @@ instance (Monad m, Monoid w) => Applicative (GForm w m) where
     (x, y, ints'', z) <- g mr env ints'
     return (a <*> x, b <> y, ints'', c <> z)
 
+instance Monoid w => MonadTrans (GForm w) where
+  lift f = GForm $ \_ _ ints -> do
+    x <- f
+    return (FormSuccess x, mempty, ints, mempty)
+
 mghelper :: MonadHandler m
          => Enctype 
          -> ([Text] -> [FileInfo] -> m (FormResult a)) -- ^ parser

@@ -13,7 +13,10 @@ import qualified Data.Text as Text
 import Control.Monad.Writer.Class
 import Control.Monad.Writer.Strict
 import qualified Data.List as List
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as HA
 import Data.Function (on)
+import Data.String (IsString(..))
 
 data Context = Success | Info | Warning | Danger | Default | Primary | Link | Error
 data Size = ExtraSmall | Small | Medium | Large
@@ -36,6 +39,12 @@ span_ attrs inner = [whamlet|<span *{mkStrAttrs attrs}>^{inner}|]
 
 strong_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 strong_ attrs inner = [whamlet|<strong *{mkStrAttrs attrs}>^{inner}|]
+
+em_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+em_ attrs inner = [whamlet|<em *{mkStrAttrs attrs}>^{inner}|]
+
+s_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+s_ attrs inner = [whamlet|<s *{mkStrAttrs attrs}>^{inner}|]
 
 nav_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 nav_ attrs inner = [whamlet|<nav *{mkStrAttrs attrs}>^{inner}|]
@@ -127,6 +136,9 @@ checkbox = div_ [("class","checkbox")]
 
 alert :: Context -> WidgetT site IO () -> WidgetT site IO ()
 alert ctx = div_ [("class","alert alert-" <> contextName ctx)]
+
+alertHtml :: Context -> Html -> Html
+alertHtml ctx inner = H.div H.! HA.class_ (fromString $ Text.unpack $ "alert alert-" <> contextName ctx) $ inner
 
 caret :: WidgetT site IO ()
 caret = span_ [("class","caret")] mempty
