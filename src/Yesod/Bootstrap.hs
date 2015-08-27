@@ -34,6 +34,9 @@ div_ attrs inner = [whamlet|<div *{mkStrAttrs attrs}>^{inner}|]
 span_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 span_ attrs inner = [whamlet|<span *{mkStrAttrs attrs}>^{inner}|]
 
+strong_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+strong_ attrs inner = [whamlet|<strong *{mkStrAttrs attrs}>^{inner}|]
+
 nav_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 nav_ attrs inner = [whamlet|<nav *{mkStrAttrs attrs}>^{inner}|]
 
@@ -93,6 +96,9 @@ li_ attrs inner = [whamlet|<li *{mkStrAttrs attrs}>^{inner}|]
 
 small_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 small_ attrs inner = [whamlet|<small *{mkStrAttrs attrs}>^{inner}|]
+
+i_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+i_ attrs inner = [whamlet|<i *{mkStrAttrs attrs}>^{inner}|]
 
 a_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 a_ attrs inner = [whamlet|<a *{mkStrAttrs attrs}>^{inner}|]
@@ -300,6 +306,12 @@ togglableTabs s tabs = do
   addClass klass attrs = case List.lookup "class" attrs of
     Nothing -> ("class",klass) : attrs
     Just c -> ("class",c <> " " <> klass) : List.deleteBy ((==) `on` fst) ("class","") attrs
+
+listGroupLinked :: [(Route site,WidgetT site IO ())] -> WidgetT site IO ()
+listGroupLinked items = do
+  render <- getUrlRender
+  div_ [("class","list-group")] $ forM_ items $ \(route,name) -> do
+    a_ [("href",render route),("class","list-group-item")] name
 
 breadcrumbsList :: [(Route site,WidgetT site IO ())] -> WidgetT site IO ()
 breadcrumbsList allCrumbs = case reverse allCrumbs of
