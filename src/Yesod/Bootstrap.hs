@@ -112,6 +112,12 @@ i_ attrs inner = [whamlet|<i *{mkStrAttrs attrs}>^{inner}|]
 a_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 a_ attrs inner = [whamlet|<a *{mkStrAttrs attrs}>^{inner}|]
 
+audio_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+audio_ attrs inner = [whamlet|<audio *{mkStrAttrs attrs}>^{inner}|]
+
+source_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+source_ attrs inner = [whamlet|<source *{mkStrAttrs attrs}>^{inner}|]
+
 anchor :: Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchor route inner = [whamlet|<a href="@{route}">^{inner}|]
 
