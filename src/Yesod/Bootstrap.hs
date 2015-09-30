@@ -315,7 +315,7 @@ data ToggleStyle = ToggleStyleTab | ToggleStylePill
 togglableTabs :: ToggleStyle -> [ToggleTab site] -> WidgetT site IO ()
 togglableTabs s tabs = do
   (nav,bodies) <- execWriterT $ forM_ (zip [1..] tabs) $ \(i,tab) -> case tab of
-    ToggleSection title body -> do
+    ToggleSection title body -> do -- WriterT (Widget,Widget) over a WidgetT
       theId <- lift newIdent
       let tabAAttrs = [("role","tab"),("href","#" <> theId),("data-toggle","tab")]
           tabLiAttrs = (if isFirst then addClass "active" else id) [("role","presentation")]
