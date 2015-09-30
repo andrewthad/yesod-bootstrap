@@ -204,6 +204,20 @@ panelAccordion tcs = do
           div_ [("class","panel-body")] $ do
             content
 
+textSubmitGroupGetForm :: Route site -> Context -> Size -> Text -> Text -> Text -> WidgetT site IO () -> Bool -> WidgetT site IO ()
+textSubmitGroupGetForm route ctx size name placeholder value buttonContent buttonIsLeft = do
+  render <- getUrlRender
+  form_ [("method","GET"),("action",render route)] $ do
+    div_ [("class","form-group")] $ do
+      div_ [("class","input-group input-group-" <> colSizeShortName size)] 
+        $ mconcat
+        $ (if buttonIsLeft then reverse else id)
+        [ input_ [("class","form-control"),("type","text"),("name",name),("placeholder",placeholder),("value",value)]
+        , span_ [("class","input-group-btn")] $ do
+            button_ [("class","btn btn-" <> contextName ctx)] buttonContent
+        ]
+        
+
 colSizeShortName :: Size -> Text
 colSizeShortName s = case s of
   ExtraSmall -> "xs" 
