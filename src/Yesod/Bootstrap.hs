@@ -73,6 +73,24 @@ img_ attrs = [whamlet|<img *{mkStrAttrs attrs}>|]
 textarea_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 textarea_ attrs inner = [whamlet|<textarea *{mkStrAttrs attrs}>^{inner}|]
 
+td_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+td_ attrs inner = [whamlet|<td *{mkStrAttrs attrs}>^{inner}|]
+
+th_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+th_ attrs inner = [whamlet|<th *{mkStrAttrs attrs}>^{inner}|]
+
+table_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+table_ attrs inner = [whamlet|<table *{mkStrAttrs attrs}>^{inner}|]
+
+tbody_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+tbody_ attrs inner = [whamlet|<tbody *{mkStrAttrs attrs}>^{inner}|]
+
+thead_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+thead_ attrs inner = [whamlet|<thead *{mkStrAttrs attrs}>^{inner}|]
+
+tr_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+tr_ attrs inner = [whamlet|<tr *{mkStrAttrs attrs}>^{inner}|]
+
 h1_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 h1_ attrs inner = [whamlet|<h1 *{mkStrAttrs attrs}>^{inner}|]
 
