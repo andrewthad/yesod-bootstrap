@@ -360,11 +360,12 @@ togglableTabs s tabs = do
 radioButtons :: Context -> Text -> [(Text, WidgetT site IO ())] -> WidgetT site IO ()
 radioButtons ctx name xs = do
   div_ [("class","btn-group"),("data-toggle","buttons")] $ do
-    forM (zip trueThenFalse xs) $ \(isFirst, (theId,w)) -> do
+    forM_ (zip trueThenFalse xs) $ \(isFirst, (theId,w)) -> do
       label_ [("class", "btn btn-" <> contextName ctx <> if isFirst then " active" else "")] $ do
-        input_ $ (if isFirst then [("checked","checked")] else [])
-              ++ [("type","radio"),("name",name),("id",theId),("autocomplete","off")] $ do
-          w
+        input_ (
+          (if isFirst then [("checked","checked")] else [])
+          ++ [("type","radio"),("name",name),("id",theId),("autocomplete","off")] 
+          ) w
 
 listGroupLinked :: [(Route site,WidgetT site IO ())] -> WidgetT site IO ()
 listGroupLinked items = do
