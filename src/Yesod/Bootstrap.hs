@@ -357,6 +357,15 @@ togglableTabs s tabs = do
     Nothing -> ("class",klass) : attrs
     Just c -> ("class",c <> " " <> klass) : List.deleteBy ((==) `on` fst) ("class","") attrs
 
+radioButtons :: Context -> Text -> [(Text, WidgetT site IO ())] -> WidgetT site IO ()
+radioButtons ctx name xs = do
+  div_ [("class","btn-group"),("data-toggle","buttons")] $ do
+    forM (zip trueThenFalse xs) $ \(isFirst, (theId,w)) -> do
+      label_ [("class", "btn btn-" <> contextName ctx <> if isFirst then " active" else "")] $ do
+        input_ $ (if isFirst then [("checked","checked")] else [])
+              ++ [("type","radio"),("name",name),("id",theId),("autocomplete","off")] $ do
+          w
+
 listGroupLinked :: [(Route site,WidgetT site IO ())] -> WidgetT site IO ()
 listGroupLinked items = do
   render <- getUrlRender
@@ -369,4 +378,7 @@ breadcrumbsList allCrumbs = case reverse allCrumbs of
     forM_ (reverse crumbs) $ \(route,name) -> li_ [] $ anchor route name
     li_ [("class","active")] lastCrumbWidget
   [] -> mempty
+
+trueThenFalse :: [Bool]
+trueThenFalse = True : repeat False
 
