@@ -363,7 +363,7 @@ radioButtons ctx name xs = do
     forM_ (zip trueThenFalse xs) $ \(isFirst, (theValue,w)) -> do
       label_ [("class", "btn btn-" <> contextName ctx <> if isFirst then " active" else "")] $ do
         input_ $ (if isFirst then [("checked","checked")] else [])
-              ++ [("type","radio"),("name",name),("value",theId),("autocomplete","off")] 
+              ++ [("type","radio"),("name",name),("value",theValue),("autocomplete","off")] 
         " "
         w
 
