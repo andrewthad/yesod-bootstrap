@@ -209,7 +209,7 @@ select opts c = ghelper UrlEncoded
       view theId name [("class","form-control")] r True
   where Field parse view enctype = selectField opts
 
-newtype UploadFilename = UploadFilename Text
+newtype UploadFilename = UploadFilename { getUploadFilename :: Text }
   deriving (PersistField, PersistFieldSql, Show, Read)
 
 class YesodUpload site where
