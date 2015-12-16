@@ -151,6 +151,9 @@ row = div_ [("class","row")]
 container :: WidgetT site IO () -> WidgetT site IO ()
 container = div_ [("class","container")]
 
+well :: Size -> WidgetT site IO () -> WidgetT site IO ()
+well size = div_ [("class","well well-" <> colSizeShortName size)]
+
 col :: [ColSize] -> WidgetT site IO () -> WidgetT site IO ()
 col cs = div_ [("class", Text.intercalate " " (map mkAttr cs))]
   where mkAttr (ColSize s n) = Text.concat ["col-", colSizeShortName s, "-", Text.pack (show n)]
