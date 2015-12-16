@@ -121,6 +121,9 @@ ol_ attrs inner = [whamlet|<ol *{mkStrAttrs attrs}>^{inner}|]
 li_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 li_ attrs inner = [whamlet|<li *{mkStrAttrs attrs}>^{inner}|]
 
+blockquote_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+blockquote_ attrs inner = [whamlet|<blockquote *{mkStrAttrs attrs}>^{inner}|]
+
 small_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 small_ attrs inner = [whamlet|<small *{mkStrAttrs attrs}>^{inner}|]
 
