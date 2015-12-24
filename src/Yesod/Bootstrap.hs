@@ -76,6 +76,24 @@ img_ attrs = [whamlet|<img *{mkStrAttrs attrs}>|]
 textarea_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 textarea_ attrs inner = [whamlet|<textarea *{mkStrAttrs attrs}>^{inner}|]
 
+td_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+td_ attrs inner = [whamlet|<td *{mkStrAttrs attrs}>^{inner}|]
+
+th_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+th_ attrs inner = [whamlet|<th *{mkStrAttrs attrs}>^{inner}|]
+
+table_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+table_ attrs inner = [whamlet|<table *{mkStrAttrs attrs}>^{inner}|]
+
+tbody_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+tbody_ attrs inner = [whamlet|<tbody *{mkStrAttrs attrs}>^{inner}|]
+
+thead_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+thead_ attrs inner = [whamlet|<thead *{mkStrAttrs attrs}>^{inner}|]
+
+tr_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+tr_ attrs inner = [whamlet|<tr *{mkStrAttrs attrs}>^{inner}|]
+
 h1_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 h1_ attrs inner = [whamlet|<h1 *{mkStrAttrs attrs}>^{inner}|]
 
@@ -105,6 +123,9 @@ ol_ attrs inner = [whamlet|<ol *{mkStrAttrs attrs}>^{inner}|]
 
 li_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 li_ attrs inner = [whamlet|<li *{mkStrAttrs attrs}>^{inner}|]
+
+blockquote_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+blockquote_ attrs inner = [whamlet|<blockquote *{mkStrAttrs attrs}>^{inner}|]
 
 small_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 small_ attrs inner = [whamlet|<small *{mkStrAttrs attrs}>^{inner}|]
@@ -136,6 +157,9 @@ row = div_ [("class","row")]
 
 container :: WidgetT site IO () -> WidgetT site IO ()
 container = div_ [("class","container")]
+
+well :: Size -> WidgetT site IO () -> WidgetT site IO ()
+well size = div_ [("class","well well-" <> colSizeShortName size)]
 
 col :: [ColSize] -> WidgetT site IO () -> WidgetT site IO ()
 col cs = div_ [("class", Text.intercalate " " (map mkAttr cs))]
@@ -223,6 +247,20 @@ panelAccordion tcs = do
         div_ [("id",panelId),("class","panel-collapse collapse" <> (if i == 1 then " in" else "")),("role","tabpanel"),("aria-labelledby",headingId)] $ do
           div_ [("class","panel-body")] $ do
             content
+
+textSubmitGroupGetForm :: Route site -> Context -> Size -> Text -> Text -> Text -> WidgetT site IO () -> Bool -> WidgetT site IO ()
+textSubmitGroupGetForm route ctx size name placeholder value buttonContent buttonIsLeft = do
+  render <- getUrlRender
+  form_ [("method","GET"),("action",render route)] $ do
+    div_ [("class","form-group")] $ do
+      div_ [("class","input-group input-group-" <> colSizeShortName size)] 
+        $ mconcat
+        $ (if buttonIsLeft then reverse else id)
+        [ input_ [("class","form-control"),("type","text"),("name",name),("placeholder",placeholder),("value",value)]
+        , span_ [("class","input-group-btn")] $ do
+            button_ [("class","btn btn-" <> contextName ctx)] buttonContent
+        ]
+        
 
 colSizeShortName :: Size -> Text
 colSizeShortName s = case s of
@@ -398,6 +436,16 @@ togglableTabs s tabs = do
     Nothing -> ("class",klass) : attrs
     Just c -> ("class",c <> " " <> klass) : List.deleteBy ((==) `on` fst) ("class","") attrs
 
+radioButtons :: Context -> Text -> [(Text, WidgetT site IO ())] -> WidgetT site IO ()
+radioButtons ctx name xs = do
+  div_ [("class","btn-group"),("data-toggle","buttons")] $ do
+    forM_ (zip trueThenFalse xs) $ \(isFirst, (theValue,w)) -> do
+      label_ [("class", "btn btn-" <> contextName ctx <> if isFirst then " active" else "")] $ do
+        input_ $ (if isFirst then [("checked","checked")] else [])
+              ++ [("type","radio"),("name",name),("value",theValue),("autocomplete","off")] 
+        " "
+        w
+
 listGroupLinked :: [(Route site,WidgetT site IO ())] -> WidgetT site IO ()
 listGroupLinked items = do
   render <- getUrlRender
@@ -410,4 +458,7 @@ breadcrumbsList allCrumbs = case reverse allCrumbs of
     forM_ (reverse crumbs) $ \(route,name) -> li_ [] $ anchor route name
     li_ [("class","active")] lastCrumbWidget
   [] -> mempty
+
+trueThenFalse :: [Bool]
+trueThenFalse = True : repeat False
 
