@@ -1,6 +1,7 @@
 module Yesod.Bootstrap where
 
 import Prelude hiding (div)
+import Data.Foldable
 import Yesod.Core
 import Yesod.Core.Widget
 import Yesod.Core.Handler
@@ -38,10 +39,12 @@ span_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 span_ attrs inner = [whamlet|<span *{mkStrAttrs attrs}>^{inner}|]
 
 strong_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
-strong_ attrs inner = [whamlet|<strong *{mkStrAttrs attrs}>^{inner}|]
+strong_ attrs inner = [whamlet|$newline never
+<strong *{mkStrAttrs attrs}>^{inner}|]
 
 em_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
-em_ attrs inner = [whamlet|<em *{mkStrAttrs attrs}>^{inner}|]
+em_ attrs inner = [whamlet|$newline never
+<em *{mkStrAttrs attrs}>^{inner}|]
 
 s_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 s_ attrs inner = [whamlet|<s *{mkStrAttrs attrs}>^{inner}|]
@@ -110,7 +113,8 @@ i_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 i_ attrs inner = [whamlet|<i *{mkStrAttrs attrs}>^{inner}|]
 
 a_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
-a_ attrs inner = [whamlet|<a *{mkStrAttrs attrs}>^{inner}|]
+a_ attrs inner = [whamlet|$newline never
+<a *{mkStrAttrs attrs}>^{inner}|]
 
 audio_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 audio_ attrs inner = [whamlet|<audio *{mkStrAttrs attrs}>^{inner}|]
@@ -146,6 +150,11 @@ alert ctx = div_ [("class","alert alert-" <> contextName ctx)]
 alertHtml :: Context -> Html -> Html
 alertHtml ctx inner = H.div H.! HA.class_ (fromString $ Text.unpack $ "alert alert-" <> contextName ctx) $ inner
 
+alertHtmlDismiss :: Context -> Html -> Html
+alertHtmlDismiss ctx inner = H.div H.! HA.class_ (fromString $ Text.unpack $ "alert alert-dismissable alert-" <> contextName ctx) $ do
+  H.button H.! HA.class_ "close" H.! HA.type_ "button" H.! H.dataAttribute "dismiss" "alert" $ H.preEscapedToHtml ("&times;" :: Text)
+  inner
+
 caret :: WidgetT site IO ()
 caret = span_ [("class","caret")] mempty
 
@@ -177,10 +186,21 @@ button :: Context -> Size -> WidgetT site IO () -> WidgetT site IO ()
 button ctx size inner = do
   button_ [("class","btn btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
 
-anchorButton :: Context -> Route site -> WidgetT site IO () -> WidgetT site IO ()
-anchorButton ctx route inner = do
+formButtonPost :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
+formButtonPost ctx size route inner = do
   render <- getUrlRender
-  a_ [("href",render route),("class","btn btn-" <> contextName ctx)] inner
+  form_ [("method","POST"),("action",render route)] $ do
+    button ctx size inner
+
+anchorButton :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
+anchorButton ctx size route inner = do
+  render <- getUrlRender
+  a_ [("href",render route),("class","btn btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
+
+anchorButtonBlock :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
+anchorButtonBlock ctx size route inner = do
+  render <- getUrlRender
+  a_ [("href",render route),("class","btn btn-block btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
 
 label :: Context -> WidgetT site IO () -> WidgetT site IO ()
 label ctx = span_ [("class","label label-" <> contextName ctx)]
@@ -293,6 +313,59 @@ navbarDropdownItem item = do
 -- Stands for text widget
 tw :: Text -> WidgetT site IO ()
 tw = toWidget . toHtml 
+
+data CarouselItem site = CarouselItem
+  { ciImage   :: Route site
+  , ciLink    :: Maybe (Route site)
+  , ciCaption :: Maybe (WidgetT site IO ())
+  }
+
+data CarouselIndicators = CarouselIndicatorsOn | CarouselIndicatorsOff
+  deriving (Eq)
+data CarouselControls = CarouselControlsOn | CarouselControlsOff
+  deriving (Eq)
+
+-- Carousel Element 
+carousel :: CarouselIndicators -> CarouselControls -> [CarouselItem site] -> WidgetT site IO ()
+carousel indicators controls items = if length items == 0 then mempty else do
+  render <- getUrlRender
+  carouselId <- newIdent
+  div_ [("class","carousel slide"),("data-ride","carousel"),("id",carouselId)] $ do
+    when (indicators == CarouselIndicatorsOn) $ do
+      ol_ [("class","carousel-indicators")] $ do
+        forM_ (zip [0,1..] itemsActive) $ \(i,(active,_)) -> do
+          li_ [ ("data-target", "#" <> carouselId)
+              , ("data-slide-to", Text.pack (show i))
+              , ("class", if active then "active" else "")
+              ] mempty
+    div_ [("class","carousel-inner"), ("role","listbox")] $ do
+      forM_ itemsActive $ \(active,item) -> do
+        div_ [("class","item " <> if active then "active" else "")] $ do
+          wrapWithLink (ciLink item) mempty
+          img_ [("src",render (ciImage item))]
+          for_ (ciCaption item) $ \caption -> do
+            div_ [("class","carousel-caption")] caption
+    when (controls == CarouselControlsOn) $ do
+      a_ [ ("class","left carousel-control")
+         , ("href","#" <> carouselId)
+         , ("role","button")
+         , ("data-slide","prev")
+         ] $ do
+         glyphicon "chevron-left"
+         span_ [("class","sr-only")] "Previous"
+      a_ [ ("class","right carousel-control")
+         , ("href","#" <> carouselId)
+         , ("role","button")
+         , ("data-slide","next")
+         ] $ do
+         glyphicon "chevron-right"
+         span_ [("class","sr-only")] "Next"
+  where 
+  itemsActive = zip (True : repeat False) items
+  wrapWithLink :: Maybe (Route site) -> WidgetT site IO () -> WidgetT site IO ()
+  wrapWithLink mroute w = (\ww -> maybe w ww mroute) $ \route -> do
+    render <- getUrlRender
+    a_ [("href", render route),("style","position:absolute;left:0;right:0;width:100%;height:100%;")] w
 
 -- Togglable tabs
 data ToggleTab site = ToggleSection Text (WidgetT site IO ()) | ToggleDropdown Text [(Text,WidgetT site IO ())]
