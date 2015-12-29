@@ -64,6 +64,9 @@ label_ attrs inner = [whamlet|<label *{mkStrAttrs attrs}>^{inner}|]
 pre_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 pre_ attrs inner = [whamlet|<pre *{mkStrAttrs attrs}>^{inner}|]
 
+code_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+code_ attrs inner = [whamlet|<code *{mkStrAttrs attrs}>^{inner}|]
+
 input_ :: [(Text,Text)] -> WidgetT site IO ()
 input_ attrs = [whamlet|<input *{mkStrAttrs attrs}>|]
 
