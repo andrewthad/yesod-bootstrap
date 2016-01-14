@@ -18,6 +18,7 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as HA
 import Data.Function (on)
 import Data.String (IsString(..))
+import Text.Julius (rawJS)
 
 data Context = Success | Info | Warning | Danger | Default | Primary | Link | Error
 data Size = ExtraSmall | Small | Medium | Large
@@ -461,6 +462,28 @@ breadcrumbsList allCrumbs = case reverse allCrumbs of
     forM_ (reverse crumbs) $ \(route,name) -> li_ [] $ anchor route name
     li_ [("class","active")] lastCrumbWidget
   [] -> mempty
+
+popover :: WidgetT site IO () -> WidgetT site IO () -> (Text -> WidgetT site IO ()) -> WidgetT site IO ()
+popover title popup inner = do
+  innerId <- newIdent
+  popupWrapId <- newIdent
+  titleWrapId <- newIdent
+  inner innerId
+  div_ [("id",popupWrapId),("style","display:none;")] $ do
+    popup
+  div_ [("id",titleWrapId),("style","display:none;")] $ do
+    title
+  toWidget [julius|
+$().ready(function(){
+  $('##{rawJS innerId}').popover(
+    { html: true
+    , trigger: focus
+    , content: function() { return $('##{rawJS popupWrapId}').html(); }
+    , title: function() { return $('##{rawJS titleWrapId}').html(); }
+    }
+  );
+});
+|]
 
 trueThenFalse :: [Bool]
 trueThenFalse = True : repeat False
