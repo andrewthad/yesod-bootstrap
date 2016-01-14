@@ -477,7 +477,7 @@ popover title popup inner = do
 $().ready(function(){
   $('##{rawJS innerId}').popover(
     { html: true
-    , trigger: focus
+    , trigger: 'focus'
     , content: function() { return $('##{rawJS popupWrapId}').html(); }
     , title: function() { return $('##{rawJS titleWrapId}').html(); }
     }
