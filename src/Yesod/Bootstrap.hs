@@ -468,7 +468,7 @@ popover title popup inner = do
   innerId <- newIdent
   popupWrapId <- newIdent
   titleWrapId <- newIdent
-  a_ [("id",innerId)] inner
+  a_ [("href","javascript://"),("id",innerId)] inner
   div_ [("id",popupWrapId),("style","display:none;")] $ do
     popup
   div_ [("id",titleWrapId),("style","display:none;")] $ do
