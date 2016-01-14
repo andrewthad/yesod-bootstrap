@@ -463,12 +463,12 @@ breadcrumbsList allCrumbs = case reverse allCrumbs of
     li_ [("class","active")] lastCrumbWidget
   [] -> mempty
 
-popover :: WidgetT site IO () -> WidgetT site IO () -> (Text -> WidgetT site IO ()) -> WidgetT site IO ()
+popover :: WidgetT site IO () -> WidgetT site IO () -> WidgetT site IO () -> WidgetT site IO ()
 popover title popup inner = do
   innerId <- newIdent
   popupWrapId <- newIdent
   titleWrapId <- newIdent
-  inner innerId
+  a_ [("href","#"),("id",innerId)] inner
   div_ [("id",popupWrapId),("style","display:none;")] $ do
     popup
   div_ [("id",titleWrapId),("style","display:none;")] $ do
