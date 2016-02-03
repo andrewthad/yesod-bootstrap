@@ -18,6 +18,7 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as HA
 import Data.Function (on)
 import Data.String (IsString(..))
+import Data.Char (isDigit)
 
 data Context = Success | Info | Warning | Danger | Default | Primary | Link | Error
 data Size = ExtraSmall | Small | Medium | Large
@@ -69,6 +70,9 @@ input_ attrs = [whamlet|<input *{mkStrAttrs attrs}>|]
 
 hr_ :: [(Text,Text)] -> WidgetT site IO ()
 hr_ attrs = [whamlet|<hr *{mkStrAttrs attrs}>|]
+
+br_ :: [(Text,Text)] -> WidgetT site IO ()
+br_ attrs = [whamlet|<br *{mkStrAttrs attrs}>|]
 
 img_ :: [(Text,Text)] -> WidgetT site IO ()
 img_ attrs = [whamlet|<img *{mkStrAttrs attrs}>|]
@@ -146,6 +150,16 @@ source_ attrs inner = [whamlet|<source *{mkStrAttrs attrs}>^{inner}|]
 anchor :: Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchor route inner = [whamlet|<a href="@{route}">^{inner}|]
 
+anchorPhone :: Text -> WidgetT site IO ()
+anchorPhone phone = [whamlet|<a href="tel:#{cleanedPhone}">#{phone}|]
+  where 
+  strippedPhone = Text.filter ((||) <$> isDigit <*> (== '+')) phone
+  cleanedPhone = case Text.uncons strippedPhone of
+    Nothing -> Text.empty
+    Just (c,cs) -> if c == '+' 
+      then strippedPhone
+      else Text.append "+1" strippedPhone
+
 button_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 button_ attrs inner = [whamlet|<button *{mkStrAttrs attrs}>^{inner}|]
 
@@ -210,6 +224,10 @@ button :: Context -> Size -> WidgetT site IO () -> WidgetT site IO ()
 button ctx size inner = do
   button_ [("class","btn btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
 
+buttonRaised :: Context -> Size -> WidgetT site IO () -> WidgetT site IO ()
+buttonRaised ctx size inner = do
+  button_ [("class","btn btn-raised btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
+
 formButtonPost :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
 formButtonPost ctx size route inner = do
   render <- getUrlRender
@@ -221,16 +239,34 @@ anchorButton ctx size route inner = do
   render <- getUrlRender
   a_ [("href",render route),("class","btn btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
 
+anchorButtonRaised :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
+anchorButtonRaised ctx size route inner = do
+  render <- getUrlRender
+  a_ [("href",render route),("class","btn btn-raised btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
+
 anchorButtonBlock :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchorButtonBlock ctx size route inner = do
   render <- getUrlRender
   a_ [("href",render route),("class","btn btn-block btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
+
+anchorButtonRaisedBlock :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
+anchorButtonRaisedBlock ctx size route inner = do
+  render <- getUrlRender
+  a_ [("href",render route),("class","btn btn-raised btn-block btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
 
 label :: Context -> WidgetT site IO () -> WidgetT site IO ()
 label ctx = span_ [("class","label label-" <> contextName ctx)]
 
 badge :: WidgetT site IO () -> WidgetT site IO ()
 badge = span_ [("class","badge")]
+
+panel :: Panel site -> WidgetT site IO ()
+panel (Panel title content ctx) = do
+  div_ [("class","panel panel-" <> contextName ctx)] $ do
+    div_ [("class", "panel-heading")] $ do
+      h4_ [("class","panel-title")] title
+    div_ [("class","panel-body")] $ do
+      content
 
 panelAccordion :: [Panel site] -> WidgetT site IO ()
 panelAccordion tcs = do 
