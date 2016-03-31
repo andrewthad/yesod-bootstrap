@@ -154,6 +154,9 @@ source_ attrs inner = [whamlet|<source *{mkStrAttrs attrs}>^{inner}|]
 anchor :: Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchor route inner = [whamlet|<a href="@{route}">^{inner}|]
 
+anchorEmail :: Text -> WidgetT site IO () -> WidgetT site IO ()
+anchorEmail email inner = [whamlet|<a href="mailto:#{email}">^{inner}|]
+
 anchorPhone :: Text -> WidgetT site IO ()
 anchorPhone phone = [whamlet|<a href="tel:#{cleanedPhone}">#{phone}|]
   where 
@@ -237,6 +240,12 @@ formButtonPost ctx size route inner = do
   render <- getUrlRender
   form_ [("method","POST"),("action",render route)] $ do
     button ctx size inner
+
+formButtonRaisedPost :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
+formButtonRaisedPost ctx size route inner = do
+  render <- getUrlRender
+  form_ [("method","POST"),("action",render route)] $ do
+    buttonRaised ctx size inner
 
 anchorButton :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchorButton ctx size route inner = do
