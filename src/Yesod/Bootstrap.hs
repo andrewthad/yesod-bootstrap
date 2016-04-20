@@ -530,6 +530,43 @@ $().ready(function(){
 });
 |]
 
+popoverClickable :: WidgetT site IO () -> WidgetT site IO () -> WidgetT site IO () -> WidgetT site IO ()
+popoverClickable title popup inner = do
+  containerId <- newIdent
+  innerId <- newIdent
+  popupWrapId <- newIdent
+  titleWrapId <- newIdent
+  span_ [("id",containerId)] $ do
+    a_ [("href","javascript://"),("id",innerId)] inner
+    div_ [("id",popupWrapId),("style","display:none;")] $ do
+      popup
+    div_ [("id",titleWrapId),("style","display:none;")] $ do
+      title
+  toWidget [julius|
+$().ready(function(){
+  $('##{rawJS innerId}').popover(
+    { html: true
+    , trigger: 'manual'
+    , content: function() { return $('##{rawJS popupWrapId}').html(); }
+    , title: function() { return $('##{rawJS titleWrapId}').html(); }
+    }
+  );
+  var hidePopover#{rawJS innerId} = function () {
+    $('##{rawJS innerId}').popover('hide');
+    $(document).off("click keypress", hidePopover#{rawJS innerId} );
+  };
+  $('##{rawJS innerId}').focusin(function() {
+      $('##{rawJS innerId}').popover('show');
+    });
+  $('##{rawJS innerId}').on("shown.bs.popover", function() {
+      $('##{rawJS containerId}').find(".popover").on("click keypress", function(e) {
+          e.stopPropagation();
+        });
+      $(document).on("click keypress", hidePopover#{rawJS innerId});
+    });
+});
+|]
+
 trueThenFalse :: [Bool]
 trueThenFalse = True : repeat False
 
