@@ -235,6 +235,10 @@ buttonRaised :: Context -> Size -> WidgetT site IO () -> WidgetT site IO ()
 buttonRaised ctx size inner = do
   button_ [("class","btn btn-raised btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
 
+buttonRaisedBlock :: Context -> Size -> WidgetT site IO () -> WidgetT site IO ()
+buttonRaisedBlock ctx size inner = do
+  button_ [("class","btn btn-raised btn-block btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
+
 formButtonPost :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
 formButtonPost ctx size route inner = do
   render <- getUrlRender
@@ -246,6 +250,12 @@ formButtonRaisedPost ctx size route inner = do
   render <- getUrlRender
   form_ [("method","POST"),("action",render route)] $ do
     buttonRaised ctx size inner
+
+formButtonRaisedPostBlock :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
+formButtonRaisedPostBlock ctx size route inner = do
+  render <- getUrlRender
+  form_ [("method","POST"),("action",render route)] $ do
+    buttonRaisedBlock ctx size inner
 
 anchorButton :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchorButton ctx size route inner = do
