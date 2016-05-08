@@ -262,6 +262,17 @@ anchorButton ctx size route inner = do
   render <- getUrlRender
   a_ [("href",render route),("class","btn btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)] inner
 
+anchorButtonDropdown :: Context -> Size -> WidgetT site IO () -> [(Route site, WidgetT site IO ())] -> WidgetT site IO ()
+anchorButtonDropdown ctx size inner xs = div_ [("class","btn-group")] $ do
+  button_ [ ("type","button")
+          , ("class","btn btn-" <> contextName ctx <> " btn-" <> colSizeShortName size)
+          , ("data-toggle","dropdown")
+          , ("aria-haspopup","true")
+          , ("aria-expanded","false")
+          ] inner
+  ul_ [("class","dropdown-menu")] $ forM_ xs $ \(route,content) -> do
+    li_ [] $ anchor route content
+
 anchorButtonRaised :: Context -> Size -> Route site -> WidgetT site IO () -> WidgetT site IO ()
 anchorButtonRaised ctx size route inner = do
   render <- getUrlRender
