@@ -422,6 +422,9 @@ navbarDropdownItem item = do
 tw :: Text -> WidgetT site IO ()
 tw = toWidget . toHtml 
 
+preEscapedWidget :: Text -> WidgetT site IO ()
+preEscapedWidget = toWidget . H.preEscapedToHtml
+
 data CarouselItem site = CarouselItem
   { ciImage   :: Route site
   , ciLink    :: Maybe (Route site)
