@@ -386,8 +386,9 @@ navbarWithTextRight theme pos headerRoute headerContent items mText rightItems =
         a_ [("href", render headerRoute),("class","navbar-brand")] headerContent
       div_ [("class","navbar-collapse collapse"), ("id", navbarId)] $ do
         when (not $ null items) $ ul_ [("class","nav navbar-nav")] $ mapM_ navbarItem items
-        for_ mText $ \text -> p_ [("class","navbar-text navbar-right")] text
         when (not $ null rightItems) $ ul_ [("class","nav navbar-nav navbar-right")] $ mapM_ navbarItem rightItems
+        for_ mText $ \text -> p_ [("class","navbar-text navbar-right")] text
+
   where 
   themeClass = case theme of
     NavbarDefault -> "navbar-default" 
@@ -409,35 +410,7 @@ navbar ::
   -> [NavbarItem site]
   -> [NavbarItem site]
   -> WidgetT site IO ()
-navbar theme pos headerRoute headerContent items rightItems = do
-  navbarId <- newIdent
-  render <- getUrlRender
-  nav_ [("class","navbar " <> themeClass <> " " <> posClass)] $ do
-    div_ [("class",containerClass)] $ do
-      div_ [("class", "navbar-header")] $ do
-        button_ [ ("class", "navbar-toggle collapsed"),("type","button")
-                , ("data-toggle", "collapse"), ("aria-expanded", "false")
-                , ("aria-controls", navbarId),("data-target", "#" <> navbarId)
-                ] $ do
-          span_ [("class","sr-only")] $ tw "Toggle Navigation"
-          replicateM_ 3 $ span_ [("class","icon-bar")] mempty
-        a_ [("href", render headerRoute),("class","navbar-brand")] headerContent
-      div_ [("class","navbar-collapse collapse"), ("id", navbarId)] $ do
-        ul_ [("class","nav navbar-nav")] $ mapM_ navbarItem items
-        ul_ [("class","nav navbar-nav navbar-right")] $ mapM_ navbarItem rightItems
-  where 
-  themeClass = case theme of
-    NavbarDefault -> "navbar-default" 
-    NavbarInverse -> "navbar-inverse" 
-    NavbarOtherTheme t -> "navbar-" <> t
-  posClass = case pos of
-    NavbarStandard -> ""
-    NavbarStaticTop -> "navbar-static-top"
-    NavbarFixedTop -> "navbar-fixed-top"
-  containerClass = case pos of
-    NavbarStandard -> "container-fluid"
-    NavbarStaticTop -> "container"
-    NavbarFixedTop -> "container"
+navbar theme pos headerRoute headerContent items rightItems = navbarWithTextRight theme pos headerRoute headerContent items Nothing rightItems
   
 navbarItem :: NavbarItem site -> WidgetT site IO ()
 navbarItem item = do
