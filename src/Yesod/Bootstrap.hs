@@ -354,6 +354,7 @@ data NavbarTheme = NavbarDefault | NavbarInverse | NavbarOtherTheme Text
 data NavbarPosition = NavbarStandard | NavbarStaticTop | NavbarFixedTop
 data NavbarItem site 
   = NavbarLink (Route site) (WidgetT site IO ())
+  | NavbarText (WidgetT site IO ())
   | NavbarDropdown (WidgetT site IO ()) [NavbarDropdownItem site]
 
 data NavbarDropdownItem site 
@@ -404,6 +405,7 @@ navbarItem item = do
   render <- getUrlRender
   li_ [] $ case item of
     NavbarLink route name -> anchor route name
+    NavbarText name
     NavbarDropdown name children -> do
       a_ [ ("class","dropdown-toggle"), ("href", "#")
          , ("role", "button"), ("data-toggle", "dropdown")
