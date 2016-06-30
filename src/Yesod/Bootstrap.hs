@@ -354,6 +354,7 @@ data NavbarTheme = NavbarDefault | NavbarInverse | NavbarOtherTheme Text
 data NavbarPosition = NavbarStandard | NavbarStaticTop | NavbarFixedTop
 data NavbarItem site 
   = NavbarLink (Route site) (WidgetT site IO ())
+  | NavbarText (WidgetT site IO ())
   | NavbarDropdown (WidgetT site IO ()) [NavbarDropdownItem site]
 
 data NavbarDropdownItem site 
@@ -361,15 +362,16 @@ data NavbarDropdownItem site
   | NavbarDropdownHeader (WidgetT site IO ())
   | NavbarDropdownSeparator
 
-navbar :: 
+navbarWithTextRight :: 
      NavbarTheme
   -> NavbarPosition 
   -> Route site 
   -> WidgetT site IO ()
   -> [NavbarItem site]
+  -> Maybe (WidgetT site IO ())
   -> [NavbarItem site]
   -> WidgetT site IO ()
-navbar theme pos headerRoute headerContent items rightItems = do
+navbarWithTextRight theme pos headerRoute headerContent items mText rightItems = do
   navbarId <- newIdent
   render <- getUrlRender
   nav_ [("class","navbar " <> themeClass <> " " <> posClass)] $ do
@@ -383,8 +385,10 @@ navbar theme pos headerRoute headerContent items rightItems = do
           replicateM_ 3 $ span_ [("class","icon-bar")] mempty
         a_ [("href", render headerRoute),("class","navbar-brand")] headerContent
       div_ [("class","navbar-collapse collapse"), ("id", navbarId)] $ do
-        ul_ [("class","nav navbar-nav")] $ mapM_ navbarItem items
-        ul_ [("class","nav navbar-nav navbar-right")] $ mapM_ navbarItem rightItems
+        when (not $ null items) $ ul_ [("class","nav navbar-nav")] $ mapM_ navbarItem items
+        when (not $ null rightItems) $ ul_ [("class","nav navbar-nav navbar-right")] $ mapM_ navbarItem rightItems
+        for_ mText $ \text -> p_ [("class","navbar-text navbar-right")] text
+
   where 
   themeClass = case theme of
     NavbarDefault -> "navbar-default" 
@@ -398,12 +402,22 @@ navbar theme pos headerRoute headerContent items rightItems = do
     NavbarStandard -> "container-fluid"
     NavbarStaticTop -> "container"
     NavbarFixedTop -> "container"
+navbar :: 
+     NavbarTheme
+  -> NavbarPosition 
+  -> Route site 
+  -> WidgetT site IO ()
+  -> [NavbarItem site]
+  -> [NavbarItem site]
+  -> WidgetT site IO ()
+navbar theme pos headerRoute headerContent items rightItems = navbarWithTextRight theme pos headerRoute headerContent items Nothing rightItems
   
 navbarItem :: NavbarItem site -> WidgetT site IO ()
 navbarItem item = do
   render <- getUrlRender
   li_ [] $ case item of
     NavbarLink route name -> anchor route name
+    NavbarText name -> a_ [] name
     NavbarDropdown name children -> do
       a_ [ ("class","dropdown-toggle"), ("href", "#")
          , ("role", "button"), ("data-toggle", "dropdown")
