@@ -96,6 +96,9 @@ table_ attrs inner = [whamlet|<table *{mkStrAttrs attrs}>^{inner}|]
 tbody_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 tbody_ attrs inner = [whamlet|<tbody *{mkStrAttrs attrs}>^{inner}|]
 
+tfoot_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
+tfoot_ attrs inner = [whamlet|<tfoot *{mkStrAttrs attrs}>^{inner}|]
+
 thead_ :: [(Text,Text)] -> WidgetT site IO () -> WidgetT site IO ()
 thead_ attrs inner = [whamlet|<thead *{mkStrAttrs attrs}>^{inner}|]
 
